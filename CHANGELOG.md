@@ -22,6 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Profile data models with validation and deduplication
 - Browser management with Selenium WebDriver
 - Random delays and user agent rotation for anti-detection
+- **Installation scripts** (install.sh, run.sh, uninstall.sh)
+- System-wide installation option with global `linkedin-spider` command
+- Development installation mode with Poetry
+- Automatic dependency installation (Python, Poetry, Chrome/Chromium)
+- Interactive installation wizard with multiple installation modes
 
 ### Features
 - 🔍 Smart search via Google to avoid LinkedIn rate limits
@@ -31,12 +36,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 🌐 Optional VPN support
 - ⚡ Progress tracking and batch processing
 - 🛡️ Anti-detection measures
+- 🚀 Easy installation with interactive wizard
+- 🔧 System and development installation modes
+- 🗑️ Clean uninstallation script
 
 ### Documentation
 - Comprehensive README with installation and usage instructions
+- Quick start guide with installation scripts
 - Configuration examples and best practices
 - Legal and ethical considerations
 - Troubleshooting guide
 - MIT License
+- Contributing guidelines
+- Detailed CHANGELOG
+
+### Installation
+- Three installation modes: system, development, or both
+- Automatic dependency detection and installation
+- Support for both Poetry and pip workflows
+- Chrome/Chromium automatic setup
+- Environment configuration wizard
 
 [0.1.0]: https://github.com/alexcolls/linkedin-spider/releases/tag/v0.1.0

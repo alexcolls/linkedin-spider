@@ -29,11 +29,25 @@ LinkedIn Spider is a powerful, user-friendly command-line tool that helps you co
 
 ## 📦 Installation
 
+### Quick Install (Recommended)
+
 ```bash
 # Clone the repository
 git clone https://github.com/alexcolls/linkedin-spider.git
 cd linkedin-spider
 
+# Run the installation script
+./install.sh
+```
+
+The installation script provides three options:
+1. **System Installation** - Installs globally as `linkedin-spider` command
+2. **Development Installation** - Installs locally with Poetry for testing
+3. **Both** - Installs both system and development modes
+
+### Manual Installation
+
+```bash
 # Install dependencies with Poetry
 poetry install
 
@@ -59,12 +73,34 @@ Edit `config.yaml` for advanced settings (delays, VPN, export format, etc.)
 
 ## 🎯 Usage
 
-### Interactive Mode
+### Quick Start
 
 ```bash
-# Launch interactive CLI
+# If installed with ./install.sh --dev
+./run.sh
+
+# If installed with ./install.sh --system
 linkedin-spider
+
+# Or with Poetry directly
+poetry run python -m linkedin_spider
 ```
+
+### Interactive Mode
+
+The CLI provides an interactive menu with ASCII art:
+```bash
+linkedin-spider  # or ./run.sh
+```
+
+Menu options:
+1. 🔍 Search & Collect Profile URLs
+2. 📊 Scrape Profile Data
+3. 🤝 Auto-Connect to Profiles
+4. 📁 View/Export Results
+5. ⚙️ Configure Settings
+6. ❓ Help
+0. 🚪 Exit
 
 ### Command-Line Mode
 
@@ -72,9 +108,25 @@ linkedin-spider
 # Search for profiles
 linkedin-spider search "Python Developer" "San Francisco" --max-pages 10
 
-# Scrape profiles
+# Scrape profiles from file
 linkedin-spider scrape --urls data/profile_urls.txt --output results --format csv
+
+# Show version
+linkedin-spider version
 ```
+
+## 🗑️ Uninstallation
+
+To remove LinkedIn Spider from your system:
+
+```bash
+./uninstall.sh
+```
+
+This will:
+- Remove the system command (if installed)
+- Clean up Poetry virtual environments
+- Optionally remove .env and data files
 
 ## ⚠️ Legal & Ethical Considerations
 
