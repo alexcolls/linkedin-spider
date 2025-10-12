@@ -1,0 +1,57 @@
+# LinkedIn Spider Configuration
+
+scraper:
+  # Delay between actions (in seconds)
+  min_delay: 10
+  max_delay: 25
+  
+  # Maximum number of Google search pages to scrape
+  max_search_pages: 100
+  
+  # Scroll duration for profile pages (in seconds)
+  scroll_duration: 15
+
+browser:
+  # Run browser in headless mode
+  headless: false
+  
+  # Browser window size
+  window_width: 1920
+  window_height: 1080
+  
+  # Custom user agent (leave empty for default)
+  user_agent: ""
+
+vpn:
+  # Enable VPN switching between requests
+  enabled: false
+  
+  # VPN command to execute
+  # Examples:
+  # - ProtonVPN: protonvpn-cli c -r
+  # - NordVPN: nordvpn connect
+  # - OpenVPN: openvpn --config /path/to/config.ovpn
+  command: "protonvpn-cli c -r"
+  
+  # Switch VPN every N profiles
+  switch_frequency: 50
+
+export:
+  # Default export directory
+  data_dir: "data"
+  
+  # Default export format: csv, json, excel
+  default_format: "csv"
+  
+  # Include timestamp in filename
+  timestamp_filenames: true
+
+logging:
+  # Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: "INFO"
+  
+  # Log file location
+  file: "logs/linkedin-spider.log"
+  
+  # Enable console output
+  console: true
