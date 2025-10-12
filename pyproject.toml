@@ -1,0 +1,71 @@
+[tool.poetry]
+name = "linkedin-spider"
+version = "0.1.0"
+description = "A professional CLI tool for scraping LinkedIn profiles via Google Search"
+authors = ["quantium <your-email@example.com>"]
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/quantium/linkedin-spider"
+keywords = ["linkedin", "scraper", "cli", "automation", "web-scraping"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+packages = [{include = "linkedin_spider"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+selenium = "^4.26.1"
+beautifulsoup4 = "^4.12.3"
+lxml = "^5.3.0"
+pandas = "^2.2.3"
+typer = "^0.15.1"
+rich = "^13.9.4"
+python-dotenv = "^1.0.1"
+pyyaml = "^6.0.2"
+webdriver-manager = "^4.0.2"
+openpyxl = {version = "^3.1.5", optional = true}
+
+[tool.poetry.extras]
+excel = ["openpyxl"]
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.3"
+black = "^24.10.0"
+mypy = "^1.13.0"
+ruff = "^0.8.2"
+pytest-cov = "^6.0.0"
+
+[tool.poetry.scripts]
+linkedin-spider = "linkedin_spider.cli.main:app"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+include = '\.pyi?$'
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
