@@ -36,10 +36,16 @@ def load_ascii_art(filename: str) -> str:
 
 def show_welcome():
     """Display welcome screen with ASCII art."""
+    spider_art = load_ascii_art("spider.txt")
     banner = load_ascii_art("banner.txt")
 
     console.clear()
     console.print()
+
+    # Display spider art first
+    if spider_art:
+        console.print(spider_art, style="bold white", justify="center")
+        console.print()
 
     # Display banner
     if banner:
