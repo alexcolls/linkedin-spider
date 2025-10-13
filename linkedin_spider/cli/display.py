@@ -36,20 +36,23 @@ def load_ascii_art(filename: str) -> str:
 
 def show_welcome():
     """Display welcome screen with ASCII art."""
-    spider_art = load_ascii_art("spider.txt")
-    linkedin_art = load_ascii_art("linkedin.txt")
+    banner = load_ascii_art("banner.txt")
 
     console.clear()
     console.print()
 
-    # Spider and LinkedIn logos side by side
-    if spider_art:
-        console.print(spider_art, style="bold cyan", justify="center")
-
-    console.print()
-
-    if linkedin_art:
-        console.print(linkedin_art, style="bold blue", justify="center")
+    # Display banner
+    if banner:
+        console.print(banner, style="bold cyan", justify="center")
+    else:
+        # Fallback if banner file not found
+        console.print(
+            Panel(
+                "[bold white]LinkedIn Spider[/bold white]\n"
+                "[dim]A professional CLI tool for scraping LinkedIn profiles via Google Search[/dim]",
+                border_style="green",
+            )
+        )
 
     console.print()
     console.print(
