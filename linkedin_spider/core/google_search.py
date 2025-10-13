@@ -157,7 +157,7 @@ class GoogleSearchScraper:
         input("Press ENTER after you've solved the CAPTCHA to continue...")
         print("="*60 + "\n")
         logger.info("Continuing after CAPTCHA resolution...")
-        time.sleep(2)
+        time.sleep(3)  # Give page time to fully load after CAPTCHA
 
     def _scrape_current_page(self) -> List[str]:
         """
@@ -218,16 +218,29 @@ class GoogleSearchScraper:
             if self._detect_captcha():
                 self._wait_for_captcha_resolution()
             
-            next_button = browser.driver.find_element(By.ID, "pnnext")
-            next_button.click()
-            time.sleep(2)  # Wait for page load
+            # Try to find next button
+            try:
+                next_button = browser.driver.find_element(By.ID, "pnnext")
+            except NoSuchElementException:
+                logger.debug("Next button not found - end of results")
+                return False
+            
+            # Click next button
+            try:
+                next_button.click()
+                time.sleep(3)  # Wait for page load
+            except Exception as e:
+                logger.error(f"Failed to click next button: {e}")
+                return False
             
             # Check for CAPTCHA after navigation
             if self._detect_captcha():
                 self._wait_for_captcha_resolution()
             
             return True
-        except:
+            
+        except Exception as e:
+            logger.error(f"Error navigating to next page: {e}")
             return False
 
     def interactive_keywords(self) -> List[str]:
