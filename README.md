@@ -26,6 +26,7 @@ LinkedIn Spider is a powerful, user-friendly command-line tool that helps you co
 - 🌐 **VPN Support** - Optional IP rotation for enhanced privacy
 - ⚡ **Fast & Efficient** - Progress tracking and batch processing
 - 🛡️ **Anti-Detection** - Random delays, user agents, and human-like behavior
+- 🤖 **CAPTCHA Handler** - Automatic CAPTCHA detection with user-guided resolution
 
 ## 📦 Installation
 
@@ -76,11 +77,11 @@ Edit `config.yaml` for advanced settings (delays, VPN, export format, etc.)
 ### Quick Start
 
 ```bash
-# If installed with ./install.sh --dev
-./run.sh
-
-# If installed with ./install.sh --system
+# If installed with system mode
 linkedin-spider
+
+# If installed with development mode
+./run.sh
 
 # Or with Poetry directly
 poetry run python -m linkedin_spider
@@ -127,6 +128,23 @@ This will:
 - Remove the system command (if installed)
 - Clean up Poetry virtual environments
 - Optionally remove .env and data files
+
+## 🔧 Key Features Explained
+
+### CAPTCHA Handling
+
+LinkedIn Spider automatically detects when Google shows a CAPTCHA challenge:
+- Pauses scraping when CAPTCHA is detected
+- Shows clear instructions to solve it
+- Keeps the browser window open for manual resolution
+- Continues scraping after you press ENTER
+
+### Data Directory
+
+All data is saved in the `data/` folder in your current working directory:
+- Profile URLs: `data/profile_urls.txt`
+- Exported profiles: `data/profiles_YYYYMMDD_HHMMSS.csv/json/xlsx`
+- Logs: `logs/linkedin-spider.log`
 
 ## ⚠️ Legal & Ethical Considerations
 

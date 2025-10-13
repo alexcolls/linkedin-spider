@@ -57,4 +57,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Chrome/Chromium automatic setup
 - Environment configuration wizard
 
+## [0.1.1] - 2025-01-13
+
+### Added
+- 🤖 **CAPTCHA Detection**: Automatic detection of Google CAPTCHA challenges
+- 🛑 **CAPTCHA Handler**: Interactive user-guided CAPTCHA resolution with pause/resume
+- 📂 **Smart Data Directory**: Data folder now created in user's current working directory instead of installation path
+- 🔄 **Environment Variable Preservation**: Wrapper script preserves user's working directory via `LINKEDIN_SPIDER_CWD`
+
+### Fixed
+- 🐛 Fixed CLI not running interactive menu by default when no command provided
+- 🐛 Fixed data directory pointing to installation path instead of user's working directory
+- 🐛 Fixed page iteration breaking when Google shows CAPTCHA
+- 🐛 Fixed scraper continuing without results when CAPTCHA is present
+
+### Changed
+- 📝 Updated README with CAPTCHA handling and data directory explanations
+- 🔧 Improved wrapper script to capture and preserve user context
+- 🎯 Changed CLI callback to properly handle subcommands and default interactive mode
+
+### Technical Details
+- Added `_detect_captcha()` method with multiple detection strategies (iframes, selectors, keywords)
+- Added `_wait_for_captcha_resolution()` method for user interaction
+- Integrated CAPTCHA checks in `_scrape_current_page()` and `_go_to_next_page()` methods
+- Modified `config.data_dir` property to use `LINKEDIN_SPIDER_CWD` environment variable
+- Updated install.sh wrapper script to export user's working directory
+
+[0.1.1]: https://github.com/alexcolls/linkedin-spider/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/alexcolls/linkedin-spider/releases/tag/v0.1.0
