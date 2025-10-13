@@ -1,3 +1,13 @@
+# Linkedin Spider
+data/
+logs/
+.env
+.env.local
+!.env.sample
+!config.yaml
+.system-installed
+.dev-installed
+
 # Python
 __pycache__/
 *.py[cod]

@@ -13,6 +13,7 @@ app = typer.Typer(
     name="linkedin-spider",
     help="A professional CLI tool for scraping LinkedIn profiles via Google Search",
     add_completion=False,
+    no_args_is_help=False,  # Don't show help when no args provided
 )
 
 
@@ -43,31 +44,27 @@ def interactive_menu():
             display.prompt("\nPress Enter to continue")
 
 
-@app.command()
-def main(
-    interactive: bool = typer.Option(
-        True,
-        "--interactive/--no-interactive",
-        "-i/-I",
-        help="Run in interactive mode with menu",
-    ),
+@app.callback(invoke_without_command=True)
+def callback(
+    ctx: typer.Context,
 ):
     """
     LinkedIn Spider - Professional profile scraping tool.
 
     By default, runs in interactive mode with a menu.
+    Use subcommands for specific operations.
     """
+    # If a subcommand is provided, don't run the interactive menu
+    if ctx.invoked_subcommand is not None:
+        return
+
+    # No subcommand provided - run interactive menu
     try:
         # Show welcome screen
         display.show_welcome()
 
-        if interactive:
-            # Run interactive menu
-            interactive_menu()
-        else:
-            # Non-interactive mode - show help
-            display.show_help()
-            display.console.print("\n[dim]Run without --no-interactive for the interactive menu[/dim]\n")
+        # Run interactive menu
+        interactive_menu()
 
     except KeyboardInterrupt:
         display.console.print("\n\n[yellow]⚠️  Interrupted by user[/yellow]")
