@@ -131,9 +131,10 @@ class Config:
 
     @property
     def data_dir(self) -> Path:
-        """Get data directory path."""
+        """Get data directory path (relative to current working directory)."""
         dir_str = self.get("data_dir", "data") or self.get("data_dir", "data", "export")
-        return Path(dir_str)
+        # Use current working directory, not package installation directory
+        return Path.cwd() / dir_str
 
     @property
     def default_export_format(self) -> str:
