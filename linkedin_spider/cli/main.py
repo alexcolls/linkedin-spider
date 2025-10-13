@@ -112,7 +112,7 @@ def search(
 @app.command()
 def scrape(
     url_file: str = typer.Option(
-        "data/profile_urls.txt",
+        "spider_output/profile_urls.txt",
         "--urls",
         "-u",
         help="File containing profile URLs (one per line)",

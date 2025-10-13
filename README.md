@@ -143,9 +143,9 @@ LinkedIn Spider automatically detects and handles Google CAPTCHA challenges:
 
 ### Data Directory
 
-All data is saved in the `data/` folder in your current working directory:
-- Profile URLs: `data/profile_urls.txt`
-- Exported profiles: `data/profiles_YYYYMMDD_HHMMSS.csv/json/xlsx`
+All data is saved in the `spider_output/` folder in your current working directory:
+- Profile URLs: `spider_output/profile_urls.txt`
+- Exported profiles: `spider_output/profiles_YYYYMMDD_HHMMSS.csv/json/xlsx`
 - Logs: `logs/linkedin-spider.log`
 
 ## ⚠️ Legal & Ethical Considerations

@@ -1,5 +1,5 @@
 # Linkedin Spider
-data/
+spider_output/
 logs/
 .env
 .env.local
@@ -51,7 +51,7 @@ key.py
 credentials.py
 
 # Data and exports
-data/
+spider_output/
 *.csv
 *.json
 *.xlsx
