@@ -20,9 +20,7 @@ app = typer.Typer(
 def interactive_menu():
     """Run the interactive menu."""
     while True:
-        display.show_menu()
-
-        choice = display.prompt("\nSelect an option")
+        choice = display.interactive_menu_select()
 
         if choice == "1":
             commands.search_profiles_command()
@@ -60,10 +58,7 @@ def callback(
 
     # No subcommand provided - run interactive menu
     try:
-        # Show welcome screen
-        display.show_welcome()
-
-        # Run interactive menu
+        # Run interactive menu (it will show welcome screen)
         interactive_menu()
 
     except KeyboardInterrupt:

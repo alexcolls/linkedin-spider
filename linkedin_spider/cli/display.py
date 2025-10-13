@@ -1,5 +1,8 @@
 """Display utilities for CLI interface."""
 
+import sys
+import tty
+import termios
 from pathlib import Path
 from typing import List, Optional
 
@@ -60,24 +63,53 @@ def show_welcome():
         )
 
 
-def show_menu():
-    """Display interactive menu options."""
+def get_key():
+    """Get a single keypress from the user."""
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    try:
+        tty.setraw(sys.stdin.fileno())
+        ch = sys.stdin.read(1)
+        # Handle arrow keys (ESC sequences)
+        if ch == '\x1b':
+            ch = sys.stdin.read(2)
+        return ch
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+
+
+def show_menu(selected_index: int = 0):
+    """Display interactive menu options with selection highlight.
+    
+    Args:
+        selected_index: Currently selected menu item index
+    """
+    menu_items = [
+        ("1", "🔍  Search & Collect Profile URLs"),
+        ("2", "📊  Scrape Profile Data"),
+        ("3", "🤝  Auto-Connect to Profiles"),
+        ("4", "📁  View/Export Results"),
+        ("5", "⚙️   Configure Settings"),
+        ("6", "❓  Help"),
+        ("0", "🚪  Exit"),
+    ]
+    
     menu_table = Table(show_header=False, box=None, padding=(0, 2))
+    menu_table.add_column("Selector", style="dim", width=2)
     menu_table.add_column("Option", style="bold cyan", width=4)
     menu_table.add_column("Description", style="white")
 
-    menu_table.add_row("1", "🔍  Search & Collect Profile URLs")
-    menu_table.add_row("2", "📊  Scrape Profile Data")
-    menu_table.add_row("3", "🤝  Auto-Connect to Profiles")
-    menu_table.add_row("4", "📁  View/Export Results")
-    menu_table.add_row("5", "⚙️   Configure Settings")
-    menu_table.add_row("6", "❓  Help")
-    menu_table.add_row("0", "🚪  Exit")
+    for i, (option, description) in enumerate(menu_items):
+        if i == selected_index:
+            # Highlight selected item
+            menu_table.add_row("▶", f"[bold yellow]{option}[/bold yellow]", f"[bold yellow]{description}[/bold yellow]")
+        else:
+            menu_table.add_row(" ", option, description)
 
     console.print(
         Panel(
             menu_table,
-            title="[bold yellow]Main Menu[/bold yellow]",
+            title="[bold yellow]Main Menu[/bold yellow] [dim](Use ↑↓ arrows and Enter, or type number)[/dim]",
             border_style="yellow",
         )
     )
@@ -194,6 +226,43 @@ def show_help():
             border_style="green",
         )
     )
+
+
+def interactive_menu_select() -> str:
+    """Interactive menu selection with arrow keys.
+    
+    Returns:
+        Selected option as string ("1", "2", etc.)
+    """
+    menu_items = ["1", "2", "3", "4", "5", "6", "0"]
+    selected_index = 0
+    
+    try:
+        while True:
+            # Clear and redraw menu
+            console.clear()
+            from linkedin_spider.cli.display import show_welcome
+            show_welcome()
+            show_menu(selected_index)
+            
+            # Get user input
+            console.print("\n[dim]Select option: [/dim]", end="")
+            key = get_key()
+            
+            # Handle arrow keys
+            if key == '[A':  # Up arrow
+                selected_index = (selected_index - 1) % len(menu_items)
+            elif key == '[B':  # Down arrow
+                selected_index = (selected_index + 1) % len(menu_items)
+            elif key == '\r' or key == '\n':  # Enter
+                return menu_items[selected_index]
+            elif key in menu_items:  # Direct number input
+                return key
+            elif key == '\x03':  # Ctrl+C
+                raise KeyboardInterrupt
+    except Exception:
+        # Fallback to text input if arrow keys don't work
+        return prompt("Select an option")
 
 
 def prompt(message: str, default: Optional[str] = None) -> str:
