@@ -133,11 +133,13 @@ This will:
 
 ### CAPTCHA Handling
 
-LinkedIn Spider automatically detects when Google shows a CAPTCHA challenge:
-- Pauses scraping when CAPTCHA is detected
-- Shows clear instructions to solve it
-- Keeps the browser window open for manual resolution
-- Continues scraping after you press ENTER
+LinkedIn Spider automatically detects and handles Google CAPTCHA challenges:
+- **Automatic Detection**: Instantly detects when CAPTCHA appears
+- **Clear Instructions**: Shows what to do in the terminal
+- **Auto-Resume**: Automatically continues when CAPTCHA is solved (no manual Enter press needed!)
+- **Progress Updates**: Shows elapsed time every 10 seconds
+- **Smart Polling**: Checks every 2 seconds for resolution
+- **Timeout Protection**: 5-minute maximum wait with fallback
 
 ### Data Directory
 
