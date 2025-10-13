@@ -225,6 +225,8 @@ if [[ "$INSTALL_MODE" == "system" ]] || [[ "$INSTALL_MODE" == "both" ]]; then
 PROJECT_DIR="$HOME/.linkedin-spider-installation"
 
 if [[ -d "$PROJECT_DIR" ]]; then
+    # Preserve the user's working directory
+    export LINKEDIN_SPIDER_CWD="$(pwd)"
     cd "$PROJECT_DIR"
     exec poetry run python -m linkedin_spider "$@"
 else
