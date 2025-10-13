@@ -5,6 +5,7 @@ from typing import List
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.common.exceptions import NoSuchElementException
 
 from linkedin_spider.core.browser import browser
 from linkedin_spider.utils import config, logger
@@ -105,6 +106,59 @@ class GoogleSearchScraper:
             logger.error(f"Google search failed: {e}")
             return self.urls
 
+    def _detect_captcha(self) -> bool:
+        """
+        Detect if Google is showing a CAPTCHA.
+
+        Returns:
+            True if CAPTCHA detected, False otherwise
+        """
+        try:
+            # Check for reCAPTCHA iframe
+            captcha_selectors = [
+                "iframe[src*='recaptcha']",
+                "#recaptcha",
+                "[id*='captcha']",
+                "[class*='captcha']",
+                "div#g-recaptcha",
+            ]
+            
+            for selector in captcha_selectors:
+                try:
+                    elements = browser.driver.find_elements(By.CSS_SELECTOR, selector)
+                    if elements:
+                        return True
+                except:
+                    continue
+            
+            # Check page source for captcha-related text
+            page_source = browser.driver.page_source.lower()
+            captcha_keywords = ['captcha', 'unusual traffic', 'automated requests']
+            if any(keyword in page_source for keyword in captcha_keywords):
+                return True
+                
+            return False
+            
+        except Exception as e:
+            logger.debug(f"Error detecting CAPTCHA: {e}")
+            return False
+
+    def _wait_for_captcha_resolution(self):
+        """
+        Wait for user to resolve CAPTCHA.
+        """
+        logger.warning("⚠️  CAPTCHA detected! Please solve it in the browser window.")
+        print("\n" + "="*60)
+        print("⚠️  CAPTCHA DETECTED")
+        print("="*60)
+        print("Google has shown a CAPTCHA challenge.")
+        print("Please solve it in the browser window that opened.")
+        print("")
+        input("Press ENTER after you've solved the CAPTCHA to continue...")
+        print("="*60 + "\n")
+        logger.info("Continuing after CAPTCHA resolution...")
+        time.sleep(2)
+
     def _scrape_current_page(self) -> List[str]:
         """
         Scrape LinkedIn URLs from current Google results page.
@@ -115,8 +169,23 @@ class GoogleSearchScraper:
         page_urls = []
 
         try:
+            # Check for CAPTCHA first
+            if self._detect_captcha():
+                self._wait_for_captcha_resolution()
+                # After CAPTCHA, check again if we're still on a valid page
+                if self._detect_captcha():
+                    logger.error("CAPTCHA still present. Aborting page scrape.")
+                    return page_urls
+
             # Find all result divs
             result_divs = browser.driver.find_elements(By.CLASS_NAME, "yuRUbf")
+
+            # If no results found, might be a captcha or end of results
+            if not result_divs:
+                if self._detect_captcha():
+                    self._wait_for_captcha_resolution()
+                    # Try again after captcha
+                    result_divs = browser.driver.find_elements(By.CLASS_NAME, "yuRUbf")
 
             for result_div in result_divs:
                 try:
@@ -145,8 +214,18 @@ class GoogleSearchScraper:
             True if successful, False otherwise
         """
         try:
+            # Check for CAPTCHA before clicking next
+            if self._detect_captcha():
+                self._wait_for_captcha_resolution()
+            
             next_button = browser.driver.find_element(By.ID, "pnnext")
             next_button.click()
+            time.sleep(2)  # Wait for page load
+            
+            # Check for CAPTCHA after navigation
+            if self._detect_captcha():
+                self._wait_for_captcha_resolution()
+            
             return True
         except:
             return False
