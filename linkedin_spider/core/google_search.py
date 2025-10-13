@@ -146,6 +146,7 @@ class GoogleSearchScraper:
     def _wait_for_captcha_resolution(self):
         """
         Wait for user to resolve CAPTCHA.
+        Automatically detects when CAPTCHA is resolved.
         """
         logger.warning("⚠️  CAPTCHA detected! Please solve it in the browser window.")
         print("\n" + "="*60)
@@ -154,10 +155,36 @@ class GoogleSearchScraper:
         print("Google has shown a CAPTCHA challenge.")
         print("Please solve it in the browser window that opened.")
         print("")
-        input("Press ENTER after you've solved the CAPTCHA to continue...")
+        print("Waiting for CAPTCHA resolution...")
+        print("(The script will continue automatically once solved)")
         print("="*60 + "\n")
-        logger.info("Continuing after CAPTCHA resolution...")
-        time.sleep(3)  # Give page time to fully load after CAPTCHA
+        
+        # Poll for CAPTCHA resolution
+        max_wait_time = 300  # 5 minutes max
+        check_interval = 2  # Check every 2 seconds
+        elapsed_time = 0
+        
+        while elapsed_time < max_wait_time:
+            time.sleep(check_interval)
+            elapsed_time += check_interval
+            
+            # Check if CAPTCHA is still present
+            if not self._detect_captcha():
+                print("\n" + "="*60)
+                print("✅ CAPTCHA RESOLVED!")
+                print("="*60 + "\n")
+                logger.info("CAPTCHA resolved - continuing...")
+                time.sleep(2)  # Give page time to fully load
+                return
+            
+            # Show progress every 10 seconds
+            if elapsed_time % 10 == 0:
+                print(f"  Still waiting... ({elapsed_time}s elapsed)")
+        
+        # Timeout reached
+        logger.warning("CAPTCHA resolution timeout - attempting to continue anyway")
+        print("\n⚠️  Timeout waiting for CAPTCHA resolution")
+        print("Attempting to continue...\n")
 
     def _scrape_current_page(self) -> List[str]:
         """
