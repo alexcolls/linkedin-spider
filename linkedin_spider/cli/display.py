@@ -44,12 +44,11 @@ def show_welcome():
 
     # Display spider art first
     if spider_art:
-        console.print(spider_art, style="bold white", justify="center")
-        console.print()
+        console.print(spider_art, style="bold red")
 
     # Display banner
     if banner:
-        console.print(banner, style="bold cyan", justify="center")
+        console.print(banner, style="bold blue", justify="center")
     else:
         # Fallback if banner file not found
         console.print(
@@ -59,17 +58,6 @@ def show_welcome():
                 border_style="green",
             )
         )
-
-    console.print()
-    console.print(
-        Panel(
-            "[bold white]A professional CLI tool for scraping LinkedIn profiles via Google Search[/bold white]\n"
-            "[dim]Made with ❤️  for data professionals[/dim]",
-            title="[bold green]LinkedIn Spider[/bold green]",
-            border_style="green",
-        )
-    )
-    console.print()
 
 
 def show_menu():
