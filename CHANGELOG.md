@@ -95,20 +95,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - 🎮 **Interactive Arrow-Key Navigation**: Navigate menu with ↑↓ arrow keys and Enter
 - 🎨 **Enhanced Welcome Screen**: New spider ASCII art displayed before banner
-- 📂 **Better Output Organization**: Renamed output directory from `data/` to `spider_output/`
 - 📁 **src/ Layout**: Moved package to `src/linkedin_spider/` following modern Python best practices
 
 ### Changed
 - 🎯 Menu navigation now supports arrow keys with visual selection indicator (▶)
 - 🕷️ Updated banner design with improved spider ASCII art and layout
-- 📂 Default data directory changed from `data/` to `spider_output/`
 - 🏗️ Project structure refactored to use src/ layout for better separation of concerns
-- 📝 Updated all documentation to reflect new directory names and navigation
+- 📝 Updated all documentation with new features and navigation
 
 ### Technical Details
 - Implemented `get_key()` function using `termios` and `tty` for raw keyboard input
 - Added `interactive_menu_select()` with arrow key detection and menu redrawing
-- Updated `.gitignore` to use `spider_output/` instead of `data/`
 - Modified `pyproject.toml` to use `packages = [{include = "linkedin_spider", from = "src"}]`
 - Moved all source files from `linkedin_spider/` to `src/linkedin_spider/`
 

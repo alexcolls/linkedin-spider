@@ -43,6 +43,7 @@ cd linkedin-spider
 ```
 
 The installation script provides three options:
+
 1. **System Installation** - Installs globally as `linkedin-spider` command
 2. **Development Installation** - Installs locally with Poetry for testing
 3. **Both** - Installs both system and development modes
@@ -91,23 +92,26 @@ poetry run python -m linkedin_spider
 ### Interactive Mode
 
 The CLI provides an interactive menu with ASCII art and arrow-key navigation:
+
 ```bash
 linkedin-spider  # or ./run.sh
 ```
 
 **Navigation:**
+
 - Use **↑↓ arrow keys** to navigate
 - Press **Enter** to select
 - Or type the **number** directly
 
 Menu options:
+
 1. 🔍 Search & Collect Profile URLs
 2. 📊 Scrape Profile Data
 3. 🤝 Auto-Connect to Profiles
 4. 📁 View/Export Results
 5. ⚙️ Configure Settings
 6. ❓ Help
-0. 🚪 Exit
+7. 🚪 Exit
 
 ### Command-Line Mode
 
@@ -116,7 +120,7 @@ Menu options:
 linkedin-spider search "Python Developer" "San Francisco" --max-pages 10
 
 # Scrape profiles from file
-linkedin-spider scrape --urls spider_output/profile_urls.txt --output results --format csv
+linkedin-spider scrape --urls data/profile_urls.txt --output results --format csv
 
 # Show version
 linkedin-spider version
@@ -131,6 +135,7 @@ To remove LinkedIn Spider from your system:
 ```
 
 This will:
+
 - Remove the system command (if installed)
 - Clean up Poetry virtual environments
 - Optionally remove .env and data files
@@ -140,6 +145,7 @@ This will:
 ### CAPTCHA Handling
 
 LinkedIn Spider automatically detects and handles Google CAPTCHA challenges:
+
 - **Automatic Detection**: Instantly detects when CAPTCHA appears
 - **Clear Instructions**: Shows what to do in the terminal
 - **Auto-Resume**: Automatically continues when CAPTCHA is solved (no manual Enter press needed!)
@@ -149,9 +155,10 @@ LinkedIn Spider automatically detects and handles Google CAPTCHA challenges:
 
 ### Data Directory
 
-All data is saved in the `spider_output/` folder in your current working directory:
-- Profile URLs: `spider_output/profile_urls.txt`
-- Exported profiles: `spider_output/profiles_YYYYMMDD_HHMMSS.csv/json/xlsx`
+All data is saved in the `data/` folder in your current working directory:
+
+- Profile URLs: `data/profile_urls.txt`
+- Exported profiles: `data/profiles_YYYYMMDD_HHMMSS.csv/json/xlsx`
 - Logs: `logs/linkedin-spider.log`
 
 ## ⚠️ Legal & Ethical Considerations
@@ -171,4 +178,79 @@ Built with [Selenium](https://www.selenium.dev/), [Typer](https://typer.tiangolo
 
 ---
 
-Made with ❤️ for data professionals
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/alexcolls/linkedin-cv/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/alexcolls/linkedin-cv/discussions)
+
+---
+
+## ⭐ Show Your Support
+
+If this project helped you, please consider:
+
+- ⭐ **Starring the repository**
+- 🐛 **Reporting bugs**
+- 💡 **Suggesting features**
+- 🤝 **Contributing code**
+- 📢 **Sharing with others**
+
+---
+
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                             ____        |              ,
+                                            /---.'.__    |        ____//
+                                                 '--.\   |       /.---'
+                                            _______  \\  |      //
+                                          /.------.\  \| |    .'/  ______
+                                         //  ___  \ \ ||/|\  //  _/_----.\__
+                                        |/  /.-.\  \ \:|< >|// _/.'..\   '--'
+                                           //   \'. | \'.|.'/ /_/ /  \\
+                                          //     \ \_\/" ' ~\-'.-'    \\
+                                         //       '-._| :H: |'-.__     \\
+                                        //           (/'==='\)'-._\     ||
+                                        ||                        \\    \|
+                                        ||                         \\    '
+                                        |/                          \\
+                                                                     ||
+                                                                     ||
+                                                                     \\
+                                                                      '
+                        ╔════════════════════════════════════════════════════╪═╪═╪══════════╗
+                        ║                                                                   ║
+                        ║    ██╗     ██╗███╗   ██╗██╗  ██╗███████╗██████╗ ██╗███╗   ██╗     ║
+                        ║    ██║     ██║████╗  ██║██║ ██╔╝██╔════╝██╔══██╗██║████╗  ██║     ║
+                        ║    ██║     ██║██╔██╗ ██║█████╔╝ █████╗  ██║  ██║██║██╔██╗ ██║     ║
+                        ║    ██║     ██║██║╚██╗██║██╔═██╗ ██╔══╝  ██║  ██║██║██║╚██╗██║     ║
+                        ║    ███████╗██║██║ ╚████║██║  ██╗███████╗██████╔╝██║██║ ╚████║     ║
+                        ║    ╚══════╝╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝╚═════╝ ╚═╝╚═╝  ╚═══╝     ║
+                        ║                                                                   ║
+                        ║    ███████╗██████╗ ██╗██████╗ ███████╗██████╗      ^.-.^          ║
+                        ║    ██╔════╝██╔══██╗██║██╔══██╗██╔════╝██╔══██╗    '^\+/^`         ║
+                        ║    ███████╗██████╔╝██║██║  ██║█████╗  ██████╔╝    '/`"'\`         ║
+                        ║    ╚════██║██╔═══╝ ██║██║  ██║██╔══╝  ██╔══██╗                    ║
+                        ║    ███████║██║     ██║██████╔╝███████╗██║  ██║                    ║
+                        ║    ╚══════╝╚═╝     ╚═╝╚═════╝ ╚══════╝╚═╝  ╚═╝                    ║
+                        ║    ═══╪══╪═╪═╪═══╪════════════════════════════════════════════    ║
+                        ║                                                                   ║
+                        ║               Professional Network Profile Scraper                ║
+                        ║                ━━━ Weaving Through Networks ━━━                   ║
+                        ║                                                                   ║
+                        ╚═══════════════════════════════════════════════════════════════════╝
+
+---
+
+<p align="center">
+  <b>Made with ❤️ and 🐍 Python</b><br>
+  <i>Get Linkedin profiles at scale</i>
+</p>
+
+<p align="center">
+  <sub>© 2022 LinkedIn Spider | MIT License</sub>
+</p>

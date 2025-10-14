@@ -132,7 +132,7 @@ class Config:
     @property
     def data_dir(self) -> Path:
         """Get data directory path (relative to user's working directory)."""
-        dir_str = self.get("data_dir", "spider_output") or self.get("data_dir", "spider_output", "export")
+        dir_str = self.get("data_dir", "data") or self.get("data_dir", "data", "export")
         # Use the user's working directory (preserved from wrapper script)
         # or fall back to current directory for development mode
         user_cwd = os.getenv("LINKEDIN_SPIDER_CWD")
