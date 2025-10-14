@@ -20,13 +20,14 @@ LinkedIn Spider is a powerful, user-friendly command-line tool that helps you co
 ## ✨ Features
 
 - 🔍 **Smart Search** - Find profiles via Google Search to avoid LinkedIn rate limits
-- 🎨 **Beautiful CLI** - Interactive menu with ASCII art and rich formatting
+- 🎨 **Beautiful CLI** - Interactive arrow-key menu navigation with ASCII art
 - 📊 **Data Export** - Export to CSV, JSON, or Excel formats
 - 🔐 **Secure** - Environment-based configuration for credentials
 - 🌐 **VPN Support** - Optional IP rotation for enhanced privacy
 - ⚡ **Fast & Efficient** - Progress tracking and batch processing
 - 🛡️ **Anti-Detection** - Random delays, user agents, and human-like behavior
-- 🤖 **CAPTCHA Handler** - Automatic CAPTCHA detection with user-guided resolution
+- 🤖 **CAPTCHA Handler** - Automatic CAPTCHA detection with auto-resume
+- 🎮 **Interactive Menu** - Navigate with arrow keys (↑↓) and Enter
 
 ## 📦 Installation
 
@@ -89,10 +90,15 @@ poetry run python -m linkedin_spider
 
 ### Interactive Mode
 
-The CLI provides an interactive menu with ASCII art:
+The CLI provides an interactive menu with ASCII art and arrow-key navigation:
 ```bash
 linkedin-spider  # or ./run.sh
 ```
+
+**Navigation:**
+- Use **↑↓ arrow keys** to navigate
+- Press **Enter** to select
+- Or type the **number** directly
 
 Menu options:
 1. 🔍 Search & Collect Profile URLs
@@ -110,7 +116,7 @@ Menu options:
 linkedin-spider search "Python Developer" "San Francisco" --max-pages 10
 
 # Scrape profiles from file
-linkedin-spider scrape --urls data/profile_urls.txt --output results --format csv
+linkedin-spider scrape --urls spider_output/profile_urls.txt --output results --format csv
 
 # Show version
 linkedin-spider version
