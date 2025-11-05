@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: linkedin-spider-config
+  namespace: linkedin-spider
+data:
+  # Database
+  DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/linkedin_spider"
+  
+  # Redis
+  REDIS_URL: "redis://redis:6379/0"
+  QUEUE_NAME: "linkedin:urls"
+  
+  # Worker settings
+  WORKER_MODE: "true"
+  BATCH_SIZE: "1"
+  MAX_RETRIES: "3"
+  RETRY_DELAY: "5"
+  
+  # Browser
+  HEADLESS: "true"
+  
+  # Logging
+  LOG_LEVEL: "INFO"
+  
+  # Session
+  SESSION_COOKIE_PATH: "/tmp/linkedin_cookies.pkl"
