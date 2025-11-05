@@ -31,7 +31,17 @@ LinkedIn Spider is a powerful, user-friendly command-line tool that helps you co
 
 ## 📦 Installation
 
-### Quick Install (Recommended)
+### Option 1: PyPI Installation (Coming Soon)
+
+```bash
+# Install from PyPI
+pip install linkedin-spider
+
+# Or with Excel export support
+pip install linkedin-spider[excel]
+```
+
+### Option 2: Quick Install (Recommended)
 
 ```bash
 # Clone the repository
@@ -48,10 +58,10 @@ The installation script provides three options:
 2. **Development Installation** - Installs locally with Poetry for testing
 3. **Both** - Installs both system and development modes
 
-### Manual Installation
+### Option 3: Development Installation
 
 ```bash
-# Install dependencies with Poetry
+# Install from source with Poetry
 poetry install
 
 # Optional: Install with Excel support
@@ -59,6 +69,16 @@ poetry install -E excel
 
 # Activate the virtual environment
 poetry shell
+```
+
+### Option 4: Install from GitHub (Direct)
+
+```bash
+# Install directly from GitHub
+pip install git+https://github.com/alexcolls/linkedin-spider.git
+
+# Or with Excel support
+pip install "linkedin-spider[excel] @ git+https://github.com/alexcolls/linkedin-spider.git"
 ```
 
 ## ⚙️ Configuration
