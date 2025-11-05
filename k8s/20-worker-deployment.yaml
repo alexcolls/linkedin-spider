@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: linkedin-spider-worker
+  namespace: linkedin-spider
+  labels:
+    app: linkedin-spider-worker
+spec:
+  replicas: 1000  # Default 1,000 workers
+  selector:
+    matchLabels:
+      app: linkedin-spider-worker
+  template:
+    metadata:
+      labels:
+        app: linkedin-spider-worker
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: worker
+        image: linkedin-spider:latest
+        imagePullPolicy: IfNotPresent
+        command:
+        - python
+        - -m
+        - linkedin_spider.cli.main
+        - worker
+        envFrom:
+        - configMapRef:
+            name: linkedin-spider-config
+        env:
+        - name: LINKEDIN_COOKIES_B64
+          valueFrom:
+            secretKeyRef:
+              name: linkedin-credentials
+              key: cookies
+              optional: true
+        - name: HOSTNAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: spider-tmp
+          mountPath: /tmp/spider
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        livenessProbe:
+          exec:
+            command:
+            - python
+            - -c
+            - "import sys; sys.exit(0)"
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - python
+            - -c
+            - "import sys; sys.exit(0)"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: spider-tmp
+        emptyDir: {}
+      terminationGracePeriodSeconds: 60
+      restartPolicy: Always

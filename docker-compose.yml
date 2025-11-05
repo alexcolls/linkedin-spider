@@ -1,0 +1,122 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: linkedin-spider-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: linkedin_spider
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - linkedin-spider-network
+
+  # Redis Message Queue
+  redis:
+    image: redis:7-alpine
+    container_name: linkedin-spider-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - linkedin-spider-network
+
+  # LinkedIn Spider Worker
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: linkedin-spider:latest
+    container_name: linkedin-spider-worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Database
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/linkedin_spider
+      
+      # Redis
+      REDIS_URL: redis://redis:6379/0
+      QUEUE_NAME: linkedin:urls
+      
+      # Worker config
+      WORKER_MODE: "true"
+      BATCH_SIZE: "1"
+      MAX_RETRIES: "3"
+      RETRY_DELAY: "5"
+      
+      # Browser settings
+      HEADLESS: "true"
+      
+      # Session
+      SESSION_COOKIE_PATH: /app/data/linkedin_cookies.pkl
+      
+      # Logging
+      LOG_LEVEL: INFO
+      
+    volumes:
+      # Mount local data directory for cookies
+      - ./data:/app/data
+      # Temporary isolated filesystem
+      - /tmp
+    networks:
+      - linkedin-spider-network
+    command: python -m linkedin_spider.cli.main worker
+    restart: unless-stopped
+    # Scale with: docker-compose up --scale worker=10
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+
+  # Database initialization (run once)
+  db-init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: linkedin-spider:latest
+    container_name: linkedin-spider-db-init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/linkedin_spider
+    networks:
+      - linkedin-spider-network
+    command: python -c "from linkedin_spider.db import init_db; import os; init_db(os.getenv('DATABASE_URL')); print('Database initialized')"
+    restart: "no"
+
+networks:
+  linkedin-spider-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local

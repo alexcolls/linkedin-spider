@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: linkedin-spider
+  labels:
+    name: linkedin-spider
+    app: linkedin-spider

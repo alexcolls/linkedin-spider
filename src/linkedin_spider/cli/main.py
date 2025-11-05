@@ -169,6 +169,22 @@ def scrape(
 
 
 @app.command()
+def worker():
+    """Run in distributed worker mode (for Kubernetes/Docker deployment)."""
+    from linkedin_spider.core.worker import start_worker
+    
+    try:
+        logger.info("🕷️  Starting LinkedIn Spider in WORKER MODE")
+        start_worker()
+    except KeyboardInterrupt:
+        logger.info("Worker interrupted")
+        sys.exit(0)
+    except Exception as e:
+        logger.error(f"Worker failed: {e}", exc_info=True)
+        sys.exit(1)
+
+
+@app.command()
 def version():
     """Show version information."""
     display.console.print("[bold cyan]LinkedIn Spider v0.1.0[/bold cyan]")
