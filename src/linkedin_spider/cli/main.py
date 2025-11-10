@@ -129,24 +129,66 @@ def scrape(
         "-f",
         help="Export format (csv, json, excel)",
     ),
+    resume: str = typer.Option(
+        None,
+        "--resume",
+        "-r",
+        help="Resume from previous session (session name)",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Preview URLs without scraping",
+    ),
+    session_name: str = typer.Option(
+        None,
+        "--session",
+        "-s",
+        help="Custom session name for progress tracking",
+    ),
+    debug: bool = typer.Option(
+        False,
+        "--debug",
+        help="Enable debug logging",
+    ),
 ):
-    """Scrape profile data from URLs."""
+    """Scrape profile data from URLs with resume and dry-run support."""
     try:
         from pathlib import Path
 
-        # Load URLs
-        url_path = Path(url_file)
-        if not url_path.exists():
-            display.error(f"URL file not found: {url_file}")
-            sys.exit(1)
+        # Enable debug logging if requested
+        if debug:
+            logger.setLevel("DEBUG")
+            display.info("Debug logging enabled")
 
-        with open(url_path, "r") as f:
-            urls = [line.strip() for line in f if line.strip()]
+        # Handle resume mode
+        if resume:
+            display.info(f"Resuming session: {resume}")
+            urls = None  # Will be loaded from session
+        else:
+            # Load URLs from file
+            url_path = Path(url_file)
+            if not url_path.exists():
+                display.error(f"URL file not found: {url_file}")
+                sys.exit(1)
 
-        display.info(f"Loaded {len(urls)} URLs from {url_file}")
+            with open(url_path, "r") as f:
+                urls = [line.strip() for line in f if line.strip()]
+
+            display.info(f"Loaded {len(urls)} URLs from {url_file}")
 
         # Scrape
-        profiles = scraper.scrape_profiles(urls, login_first=True)
+        profiles = scraper.scrape_profiles(
+            urls,
+            login_first=True,
+            resume_session=resume,
+            dry_run=dry_run,
+            session_name=session_name,
+        )
+
+        if dry_run:
+            # Dry run complete - no export needed
+            return
 
         if profiles:
             display.success(f"Scraped {len(profiles)} profiles")
@@ -182,6 +224,57 @@ def worker():
     except Exception as e:
         logger.error(f"Worker failed: {e}", exc_info=True)
         sys.exit(1)
+
+
+@app.command()
+def sessions(
+    cleanup: bool = typer.Option(False, "--cleanup", help="Clean up all session files"),
+):
+    """List and manage progress sessions."""
+    from linkedin_spider.utils.progress import ProgressTracker
+    from rich.table import Table
+    
+    sessions_list = ProgressTracker.list_sessions()
+    
+    if cleanup:
+        for session in sessions_list:
+            tracker = ProgressTracker.load_session(session)
+            if tracker:
+                tracker.cleanup()
+        display.success(f"Cleaned up {len(sessions_list)} session(s)")
+        return
+    
+    if not sessions_list:
+        display.info("No active sessions found")
+        return
+    
+    display.console.print("\n[bold cyan]📂 Active Progress Sessions[/bold cyan]\n")
+    
+    table = Table(show_header=True, header_style="bold cyan")
+    table.add_column("Session Name", style="yellow")
+    table.add_column("Total", justify="right")
+    table.add_column("Completed", justify="right", style="green")
+    table.add_column("Failed", justify="right", style="red")
+    table.add_column("Remaining", justify="right", style="blue")
+    table.add_column("Progress", justify="right")
+    table.add_column("Updated", style="dim")
+    
+    for session in sessions_list:
+        tracker = ProgressTracker.load_session(session)
+        if tracker:
+            stats = tracker.get_stats()
+            table.add_row(
+                stats['session_name'],
+                str(stats['total_urls']),
+                str(stats['completed']),
+                str(stats['failed']),
+                str(stats['remaining']),
+                f"{stats['progress_percent']:.1f}%",
+                stats['updated_at'].split('T')[0],
+            )
+    
+    display.console.print(table)
+    display.console.print("\n[dim]Resume with: linkedin-spider scrape --resume <session_name>[/dim]\n")
 
 
 @app.command()
