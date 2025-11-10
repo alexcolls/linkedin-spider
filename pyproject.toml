@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "linkedin-spider"
+name = "linkedin-tarantula"
 version = "0.1.0"
-description = "A professional CLI tool for scraping LinkedIn profiles via Google Search"
+description = "A professional CLI tool for scraping LinkedIn profiles via Google Search (linkedin-spider was taken)"
 authors = ["quantium <alexcollsoutumuro@gmail.com>"]
 readme = "README.md"
 license = "MIT"
@@ -43,6 +43,7 @@ ruff = "^0.8.2"
 pytest-cov = "^6.0.0"
 
 [tool.poetry.scripts]
+linkedin-tarantula = "linkedin_spider.cli.main:app"
 linkedin-spider = "linkedin_spider.cli.main:app"
 
 [build-system]

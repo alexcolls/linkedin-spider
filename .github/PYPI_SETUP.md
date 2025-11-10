@@ -2,6 +2,8 @@
 
 This guide explains how to publish **linkedin-spider** to PyPI both manually and automatically via GitHub Actions.
 
+> **Note:** The PyPI package name is `linkedin-tarantula` (not `linkedin-spider`) because that name was already taken by another project. The CLI command remains `linkedin-spider`.
+
 ---
 
 ## 🔐 Setup GitHub Secrets
@@ -57,7 +59,7 @@ For testing, create a token at [https://test.pypi.org/manage/account/token/](htt
 4. The workflow will automatically:
    - Build the package
    - Publish to PyPI
-   - Make it available via `pip install linkedin-spider`
+   - Make it available via `pip install linkedin-tarantula`
 
 ### Method 2: Manual Workflow Trigger
 
@@ -131,7 +133,7 @@ poetry build
 poetry publish -r testpypi
 
 # Test installation
-pip install --index-url https://test.pypi.org/simple/ linkedin-spider
+pip install --index-url https://test.pypi.org/simple/ linkedin-tarantula
 ```
 
 ---

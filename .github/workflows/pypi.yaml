@@ -69,5 +69,6 @@ jobs:
       
       - name: ✅ Success
         run: |
-          echo "✨ Successfully published linkedin-spider v${{ env.VERSION }}!"
-          echo "📦 Install with: pip install linkedin-spider"
+          echo "✨ Successfully published linkedin-tarantula v${{ env.VERSION }}!"
+          echo "📦 Install with: pip install linkedin-tarantula"
+          echo "🔧 Run with: linkedin-spider"
