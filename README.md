@@ -30,6 +30,10 @@ LinkedIn Spider is a powerful, user-friendly command-line tool that helps you co
 - 🛡️ **Anti-Detection** - Random delays, user agents, and human-like behavior
 - 🤖 **CAPTCHA Handler** - Automatic CAPTCHA detection with auto-resume
 - 🎮 **Interactive Menu** - Navigate with arrow keys (↑↓) and Enter
+- 💾 **Resume Support** - Interrupt and resume scraping sessions
+- 🔍 **Dry Run Mode** - Preview URLs before scraping
+- 📊 **Smart Statistics** - Detailed progress and success rate tracking
+- 🔧 **Debug Mode** - Verbose logging for troubleshooting
 
 ## 📦 Installation
 
@@ -151,8 +155,84 @@ linkedin-spider search "Python Developer" "San Francisco" --max-pages 10
 # Scrape profiles from file
 linkedin-spider scrape --urls data/profile_urls.txt --output results --format csv
 
+# Dry run - preview URLs without scraping
+linkedin-spider scrape --urls data/profile_urls.txt --dry-run
+
+# Resume interrupted scraping
+linkedin-spider scrape --resume session_20250110_143022
+
+# Custom session name with debug mode
+linkedin-spider scrape --urls data/profile_urls.txt --session my-scrape --debug
+
+# List active sessions
+linkedin-spider sessions
+
+# Clean up session files
+linkedin-spider sessions --cleanup
+
 # Show version
 linkedin-spider version
+```
+
+## 🚀 Advanced Features
+
+### Resume Interrupted Scraping
+
+If your scraping session is interrupted (Ctrl+C, network issues, etc.), you can resume exactly where you left off:
+
+```bash
+# Start scraping
+linkedin-spider scrape --urls data/profile_urls.txt
+
+# If interrupted, list sessions to find your session name
+linkedin-spider sessions
+
+# Resume from where you left off
+linkedin-spider scrape --resume session_20250110_143022
+```
+
+**Progress is saved every profile**, so you never lose work!
+
+### Dry Run Mode
+
+Preview what will be scraped before starting:
+
+```bash
+linkedin-spider scrape --urls data/profile_urls.txt --dry-run
+```
+
+This shows:
+- ✅ List of URLs to scrape
+- ✅ Total count
+- ✅ No actual scraping or login
+
+### Debug Mode
+
+Get detailed logs for troubleshooting:
+
+```bash
+linkedin-spider scrape --urls data/profile_urls.txt --debug
+```
+
+### Session Management
+
+View all active progress sessions:
+
+```bash
+# List all sessions with statistics
+linkedin-spider sessions
+
+# Clean up completed sessions
+linkedin-spider sessions --cleanup
+```
+
+### Custom Session Names
+
+Use memorable session names instead of timestamps:
+
+```bash
+linkedin-spider scrape --urls data/profile_urls.txt --session my-project-name
+linkedin-spider scrape --resume my-project-name
 ```
 
 ## 🗑️ Uninstallation

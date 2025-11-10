@@ -3,12 +3,15 @@
 from typing import List, Optional
 
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+from rich.table import Table
+from rich.console import Console
 
 from linkedin_spider.core.browser import browser
 from linkedin_spider.core.google_search import google_scraper
 from linkedin_spider.core.profile_parser import profile_parser
 from linkedin_spider.models import Profile, ProfileCollection
 from linkedin_spider.utils import config, logger, vpn_manager
+from linkedin_spider.utils.progress import ProgressTracker
 
 
 class LinkedInScraper:
@@ -49,6 +52,9 @@ class LinkedInScraper:
         self,
         urls: Optional[List[str]] = None,
         login_first: bool = True,
+        resume_session: Optional[str] = None,
+        dry_run: bool = False,
+        session_name: Optional[str] = None,
     ) -> List[Profile]:
         """
         Scrape profile data from LinkedIn URLs.
@@ -56,15 +62,57 @@ class LinkedInScraper:
         Args:
             urls: List of profile URLs to scrape. If None, uses collected URLs.
             login_first: Whether to log in to LinkedIn first
+            resume_session: Session name to resume from previous run
+            dry_run: If True, only preview without scraping
+            session_name: Custom session name for progress tracking
 
         Returns:
             List of scraped profiles
         """
-        # Use provided URLs or collected URLs
-        urls_to_scrape = urls or self.profile_urls
+        # Initialize progress tracker
+        if resume_session:
+            tracker = ProgressTracker.load_session(resume_session)
+            if not tracker:
+                logger.error(f"Session '{resume_session}' not found")
+                return []
+            logger.info(f"📂 Resuming session: {resume_session}")
+            urls_to_scrape = tracker.get_remaining()
+            
+            # Show resume stats
+            stats = tracker.get_stats()
+            console = Console()
+            console.print(f"\n[cyan]Resuming from previous session:[/cyan]")
+            console.print(f"  Already completed: {stats['completed']}/{stats['total_urls']}")
+            console.print(f"  Remaining: {stats['remaining']}")
+            console.print(f"  Progress: {stats['progress_percent']:.1f}%\n")
+        else:
+            # Use provided URLs or collected URLs
+            urls_to_scrape = urls or self.profile_urls
+            tracker = ProgressTracker(session_name=session_name)
+            tracker.initialize(urls_to_scrape)
 
         if not urls_to_scrape:
             logger.error("No profile URLs to scrape")
+            return []
+
+        # Dry run mode - just preview
+        if dry_run:
+            console = Console()
+            console.print("\n[yellow]🔍 DRY RUN MODE - Preview Only[/yellow]\n")
+            
+            table = Table(title="URLs to Scrape", show_header=True, header_style="bold cyan")
+            table.add_column("#", style="dim", width=6)
+            table.add_column("URL", style="blue")
+            
+            for i, url in enumerate(urls_to_scrape[:20], 1):  # Show first 20
+                table.add_row(str(i), url)
+            
+            if len(urls_to_scrape) > 20:
+                table.add_row("...", f"... and {len(urls_to_scrape) - 20} more")
+            
+            console.print(table)
+            console.print(f"\n[green]Total URLs to scrape: {len(urls_to_scrape)}[/green]")
+            console.print("[yellow]Run without --dry-run to start scraping[/yellow]\n")
             return []
 
         # Start browser
@@ -89,12 +137,20 @@ class LinkedInScraper:
             for i, url in enumerate(urls_to_scrape, 1):
                 progress.update(task, description=f"Scraping profile {i}/{len(urls_to_scrape)}")
 
-                # Parse profile
-                profile = profile_parser.parse_profile(url)
+                try:
+                    # Parse profile
+                    profile = profile_parser.parse_profile(url)
 
-                if profile:
-                    self.collection.add(profile)
-                    scraped_profiles.append(profile)
+                    if profile:
+                        self.collection.add(profile)
+                        scraped_profiles.append(profile)
+                        tracker.mark_completed(url)
+                    else:
+                        tracker.mark_failed(url, "No data extracted")
+
+                except Exception as e:
+                    logger.error(f"Failed to scrape {url}: {e}")
+                    tracker.mark_failed(url, str(e))
 
                 # Check VPN switching
                 if vpn_manager.should_switch():
@@ -106,6 +162,36 @@ class LinkedInScraper:
 
                 progress.advance(task)
 
+        # Display final statistics
+        console = Console()
+        stats = tracker.get_stats()
+        
+        console.print("\n" + "="*60)
+        console.print("[bold cyan]📊 Scraping Statistics[/bold cyan]")
+        console.print("="*60)
+        
+        stats_table = Table(show_header=False, box=None)
+        stats_table.add_column("Metric", style="cyan", width=25)
+        stats_table.add_column("Value", style="green")
+        
+        stats_table.add_row("✅ Successfully scraped", str(stats['completed']))
+        stats_table.add_row("❌ Failed", str(stats['failed']))
+        stats_table.add_row("⏭️  Skipped", str(stats['skipped']))
+        stats_table.add_row("📊 Total", str(stats['total_urls']))
+        stats_table.add_row("📈 Success rate", f"{(stats['completed']/stats['total_urls']*100) if stats['total_urls'] > 0 else 0:.1f}%")
+        stats_table.add_row("📂 Session", stats['session_name'])
+        
+        console.print(stats_table)
+        console.print("=" *60 + "\n")
+        
+        # Cleanup progress file if complete
+        if tracker.is_complete():
+            tracker.cleanup()
+            console.print("[green]✨ All URLs processed! Progress file cleaned up.[/green]\n")
+        else:
+            console.print(f"[yellow]⚠️  {stats['remaining']} URLs remaining.[/yellow]")
+            console.print(f"[yellow]Resume with: --resume {stats['session_name']}[/yellow]\n")
+        
         logger.info(f"✅ Successfully scraped {len(scraped_profiles)} profiles")
         return scraped_profiles
 
