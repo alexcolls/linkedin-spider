@@ -9,6 +9,8 @@
 
 **A professional CLI tool for scraping LinkedIn profiles via Google Search**
 
+> **📦 PyPI Package Name:** This project is available on PyPI as [`linkedin-tarantula`](https://pypi.org/project/linkedin-tarantula/) because `linkedin-spider` was already taken by another project. The GitHub repository remains `linkedin-spider`.
+
 </div>
 
 ---
@@ -31,17 +33,21 @@ LinkedIn Spider is a powerful, user-friendly command-line tool that helps you co
 
 ## 📦 Installation
 
-### Option 1: PyPI Installation (Coming Soon)
+### Option 1: PyPI Installation (Recommended)
+
+> **Note:** The PyPI package is named `linkedin-tarantula` (not `linkedin-spider`) because the latter name was already taken.
 
 ```bash
 # Install from PyPI
-pip install linkedin-spider
+pip install linkedin-tarantula
 
 # Or with Excel export support
-pip install linkedin-spider[excel]
+pip install linkedin-tarantula[excel]
 ```
 
-### Option 2: Quick Install (Recommended)
+This installs the `linkedin-spider` command globally.
+
+### Option 2: Quick Install from Source
 
 ```bash
 # Clone the repository
@@ -99,7 +105,10 @@ Edit `config.yaml` for advanced settings (delays, VPN, export format, etc.)
 ### Quick Start
 
 ```bash
-# If installed with system mode
+# If installed from PyPI (pip install linkedin-tarantula)
+linkedin-spider
+
+# If installed from source with system mode
 linkedin-spider
 
 # If installed with development mode
@@ -114,7 +123,7 @@ poetry run python -m linkedin_spider
 The CLI provides an interactive menu with ASCII art and arrow-key navigation:
 
 ```bash
-linkedin-spider  # or ./run.sh
+linkedin-spider  # or ./run.sh for development
 ```
 
 **Navigation:**
