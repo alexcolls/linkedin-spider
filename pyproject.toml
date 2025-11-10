@@ -2,7 +2,7 @@
 name = "linkedin-spider"
 version = "0.1.0"
 description = "A professional CLI tool for scraping LinkedIn profiles via Google Search"
-authors = ["quantium <your-email@example.com>"]
+authors = ["quantium <alexcollsoutumuro@gmail.com>"]
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/quantium/linkedin-spider"
