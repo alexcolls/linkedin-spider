@@ -93,6 +93,7 @@ ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     CHROME_BIN=/usr/bin/google-chrome-stable \
+    CHROME_NO_SANDBOX=1 \
     DISPLAY=:99 \
     TMPDIR=/tmp/spider
 

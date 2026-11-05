@@ -1,5 +1,6 @@
 """Browser management for LinkedIn Spider."""
 
+import os
 import random
 import time
 from pathlib import Path
@@ -66,12 +67,15 @@ class BrowserManager:
             chrome_options.add_argument(f"user-agent={random.choice(user_agents)}")
 
         # Additional stability options
-        chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-gpu")
 
         # Create service
         service = Service(ChromeDriverManager().install())
+        # The sandbox protects a logged-in browser from the pages it loads, so only
+        # environments that can't run it (containers) should turn it off.
+        if os.getenv("CHROME_NO_SANDBOX"):
+            chrome_options.add_argument("--no-sandbox")
 
         # Create driver
         driver = webdriver.Chrome(service=service, options=chrome_options)
