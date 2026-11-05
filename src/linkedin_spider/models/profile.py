@@ -1,9 +1,56 @@
 """Data models for LinkedIn profiles."""
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, Iterable, List, Optional
 from urllib.parse import urlparse
+
+
+def _profile_slug(url: str) -> Optional[str]:
+    """Return the /in/<slug> slug of a LinkedIn profile URL, or None if it isn't one."""
+    try:
+        parsed = urlparse(url)
+        host = (parsed.hostname or "").lower()
+    except ValueError:
+        return None
+
+    parts = [part for part in parsed.path.split("/") if part]
+    if (
+        parsed.scheme in ("http", "https")
+        and (host == "linkedin.com" or host.endswith(".linkedin.com"))
+        and len(parts) >= 2
+        and parts[0] == "in"
+    ):
+        return parts[1]
+    return None
+
+
+def is_profile_url(url: str) -> bool:
+    """Check that a URL really is a LinkedIn profile, judged by host and path."""
+    return _profile_slug(url) is not None
+
+
+def normalize_profile_url(url: str) -> str:
+    """
+    Reduce a profile URL to https://www.linkedin.com/in/<slug>.
+
+    Search results link the same person through country subdomains (es.linkedin.com),
+    language suffixes (/in/foo/en) and tracking parameters.
+
+    Raises:
+        ValueError: If the URL is not a LinkedIn profile
+    """
+    slug = _profile_slug(url)
+    if slug is None:
+        raise ValueError(f"Not a LinkedIn profile URL: {url!r}")
+    return f"https://www.linkedin.com/in/{slug}"
+
+
+def unique_profile_urls(urls: Iterable[str]) -> List[str]:
+    """Canonicalize profile URLs and remove duplicates, dropping anything else."""
+    return list(
+        dict.fromkeys(normalize_profile_url(url) for url in urls if is_profile_url(url))
+    )
 
 
 @dataclass
@@ -21,12 +68,7 @@ class Profile:
 
     def __post_init__(self):
         """Validate and normalize data after initialization."""
-        # Validate URL
-        if not self.url:
-            raise ValueError("Profile URL cannot be empty")
-
-        # Normalize URL
-        self.url = self._normalize_url(self.url)
+        self.url = normalize_profile_url(self.url)
 
         # Clean text fields
         self.name = self._clean_text(self.name)
@@ -38,26 +80,6 @@ class Profile:
         # Ensure followers is non-negative
         if self.followers < 0:
             self.followers = 0
-
-    @staticmethod
-    def _normalize_url(url: str) -> str:
-        """
-        Normalize LinkedIn profile URL.
-
-        Args:
-            url: Raw URL
-
-        Returns:
-            Normalized URL
-        """
-        # Remove query parameters and fragments
-        parsed = urlparse(url)
-        clean_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
-
-        # Remove trailing slash
-        clean_url = clean_url.rstrip("/")
-
-        return clean_url
 
     @staticmethod
     def _clean_text(text: str) -> str:
@@ -105,6 +127,8 @@ class Profile:
         Returns:
             Profile instance
         """
+        data = dict(data)
+
         # Parse datetime if it's a string
         if isinstance(data.get("scraped_at"), str):
             data["scraped_at"] = datetime.fromisoformat(data["scraped_at"])
@@ -128,6 +152,11 @@ class ProfileCollection:
     def __init__(self):
         """Initialize empty profile collection."""
         self._profiles: Dict[str, Profile] = {}
+
+    @staticmethod
+    def _key(url: str) -> str:
+        """Look profiles up by canonical URL, whichever form the caller holds."""
+        return normalize_profile_url(url) if is_profile_url(url) else url
 
     def add(self, profile: Profile) -> bool:
         """
@@ -171,7 +200,7 @@ class ProfileCollection:
         Returns:
             Profile if found, None otherwise
         """
-        return self._profiles.get(url)
+        return self._profiles.get(self._key(url))
 
     def remove(self, url: str) -> bool:
         """
@@ -183,10 +212,7 @@ class ProfileCollection:
         Returns:
             True if profile was removed, False if not found
         """
-        if url in self._profiles:
-            del self._profiles[url]
-            return True
-        return False
+        return self._profiles.pop(self._key(url), None) is not None
 
     def get_all(self) -> List[Profile]:
         """
@@ -211,4 +237,4 @@ class ProfileCollection:
 
     def __contains__(self, url: str) -> bool:
         """Check if URL exists in collection."""
-        return url in self._profiles
+        return self._key(url) in self._profiles
