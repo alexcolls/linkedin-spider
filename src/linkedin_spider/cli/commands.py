@@ -43,7 +43,9 @@ def search_profiles_command():
 
         # Ask to save
         if display.confirm("Save URLs to file?", default=True):
-            filename = display.prompt("Filename (without extension)", default="profile_urls")
+            filename = display.prompt(
+                "Filename (without extension)", default="profile_urls"
+            )
             filepath = config.data_dir / f"{filename}.txt"
             total = save_urls(filepath, urls)
 
@@ -224,7 +226,9 @@ def configure_settings_command():
     display.console.print(f"  • Data Directory: {config.data_dir}")
     display.console.print(f"  • Export Format: {config.default_export_format}")
 
-    display.console.print("\n[dim]To change settings, edit config.yaml or .env file[/dim]")
+    display.console.print(
+        "\n[dim]To change settings, edit config.yaml or .env file[/dim]"
+    )
     display.prompt("\nPress Enter to continue")
 
 

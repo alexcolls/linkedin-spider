@@ -96,7 +96,9 @@ def callback(
 @app.command()
 def search(
     keywords: list[str] = typer.Argument(..., help="Keywords to search for"),
-    max_pages: int = typer.Option(10, "--max-pages", "-n", help="Maximum pages to scrape"),
+    max_pages: int = typer.Option(
+        10, "--max-pages", "-n", help="Maximum pages to scrape"
+    ),
     save: bool = typer.Option(True, "--save/--no-save", help="Save URLs to file"),
 ):
     """Search for LinkedIn profiles using keywords."""
@@ -229,7 +231,7 @@ def scrape(
 def worker():
     """Run in distributed worker mode (unsupported and not working, see README-K8S.md)."""
     from linkedin_spider.core.worker import start_worker
-    
+
     try:
         logger.info("🕷️  Starting LinkedIn Spider in WORKER MODE")
         start_worker()
@@ -269,9 +271,9 @@ def sessions(
     if not trackers:
         display.info("No active sessions found")
         return
-    
+
     display.console.print("\n[bold cyan]📂 Active Progress Sessions[/bold cyan]\n")
-    
+
     table = Table(show_header=True, header_style="bold cyan")
     table.add_column("Session Name", style="yellow")
     table.add_column("Total", justify="right")
@@ -294,7 +296,9 @@ def sessions(
         )
 
     display.console.print(table)
-    display.console.print("\n[dim]Resume with: linkedin-spider scrape --resume <session_name>[/dim]\n")
+    display.console.print(
+        "\n[dim]Resume with: linkedin-spider scrape --resume <session_name>[/dim]\n"
+    )
 
 
 @app.command()

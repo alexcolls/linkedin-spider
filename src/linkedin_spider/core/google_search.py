@@ -86,7 +86,9 @@ class GoogleSearchScraper:
                 page_urls = self._scrape_current_page()
                 self.urls.extend(page_urls)
 
-                logger.info(f"Page {pages_scraped + 1}: Found {len(page_urls)} URLs (Total: {len(self.urls)})")
+                logger.info(
+                    f"Page {pages_scraped + 1}: Found {len(page_urls)} URLs (Total: {len(self.urls)})"
+                )
 
                 pages_scraped += 1
 
@@ -142,38 +144,38 @@ class GoogleSearchScraper:
             return
 
         logger.warning("⚠️  CAPTCHA detected! Please solve it in the browser window.")
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("⚠️  CAPTCHA DETECTED")
-        print("="*60)
+        print("=" * 60)
         print("Google has shown a CAPTCHA challenge.")
         print("Please solve it in the browser window that opened.")
         print("")
         print("Waiting for CAPTCHA resolution...")
         print("(The script will continue automatically once solved)")
-        print("="*60 + "\n")
-        
+        print("=" * 60 + "\n")
+
         # Poll for CAPTCHA resolution
         max_wait_time = 300  # 5 minutes max
         check_interval = 2  # Check every 2 seconds
         elapsed_time = 0
-        
+
         while elapsed_time < max_wait_time:
             time.sleep(check_interval)
             elapsed_time += check_interval
-            
+
             # Check if CAPTCHA is still present
             if not self._detect_captcha():
-                print("\n" + "="*60)
+                print("\n" + "=" * 60)
                 print("✅ CAPTCHA RESOLVED!")
-                print("="*60 + "\n")
+                print("=" * 60 + "\n")
                 logger.info("CAPTCHA resolved - continuing...")
                 time.sleep(2)  # Give page time to fully load
                 return
-            
+
             # Show progress every 10 seconds
             if elapsed_time % 10 == 0:
                 print(f"  Still waiting... ({elapsed_time}s elapsed)")
-        
+
         # Timeout reached
         logger.warning("CAPTCHA resolution timeout - attempting to continue anyway")
         print("\n⚠️  Timeout waiting for CAPTCHA resolution")
@@ -229,14 +231,14 @@ class GoogleSearchScraper:
             # Check for CAPTCHA before clicking next
             if self._detect_captcha():
                 self._wait_for_captcha_resolution()
-            
+
             # Try to find next button
             try:
                 next_button = browser.driver.find_element(By.ID, "pnnext")
             except NoSuchElementException:
                 logger.debug("Next button not found - end of results")
                 return False
-            
+
             # Click next button
             try:
                 next_button.click()
@@ -244,13 +246,13 @@ class GoogleSearchScraper:
             except Exception as e:
                 logger.error(f"Failed to click next button: {e}")
                 return False
-            
+
             # Check for CAPTCHA after navigation
             if self._detect_captcha():
                 self._wait_for_captcha_resolution()
-            
+
             return True
-            
+
         except Exception as e:
             logger.error(f"Error navigating to next page: {e}")
             return False

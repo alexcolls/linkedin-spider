@@ -89,9 +89,7 @@ class TestProfile:
 
     def test_profile_url_normalization(self):
         """Test URL normalization."""
-        profile = Profile(
-            url="https://linkedin.com/in/johndoe/?param=value"
-        )
+        profile = Profile(url="https://linkedin.com/in/johndoe/?param=value")
 
         assert profile.url == "https://www.linkedin.com/in/johndoe"
 
@@ -170,7 +168,9 @@ class TestProfileCollection:
         collection = ProfileCollection()
 
         profile1 = Profile(url="https://linkedin.com/in/johndoe", name="John Doe")
-        profile2 = Profile(url="https://linkedin.com/in/johndoe", name="John Doe Updated")
+        profile2 = Profile(
+            url="https://linkedin.com/in/johndoe", name="John Doe Updated"
+        )
 
         assert collection.add(profile1) is True
         assert collection.add(profile2) is False  # Duplicate URL

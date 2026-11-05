@@ -3,7 +3,6 @@
 import os
 import random
 import time
-from pathlib import Path
 from typing import Any, Optional
 
 from selenium import webdriver
@@ -120,7 +119,9 @@ class BrowserManager:
         time.sleep(2)
         self.start()
 
-    def login_linkedin(self, email: Optional[str] = None, password: Optional[str] = None) -> bool:
+    def login_linkedin(
+        self, email: Optional[str] = None, password: Optional[str] = None
+    ) -> bool:
         """
         Log in to LinkedIn.
 
@@ -220,7 +221,9 @@ class BrowserManager:
                 logger.debug(f"Scroll error: {e}")
                 break
 
-    def random_delay(self, min_seconds: Optional[int] = None, max_seconds: Optional[int] = None):
+    def random_delay(
+        self, min_seconds: Optional[int] = None, max_seconds: Optional[int] = None
+    ):
         """
         Wait for a random amount of time.
 

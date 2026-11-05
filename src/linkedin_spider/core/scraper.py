@@ -265,11 +265,11 @@ class LinkedInScraper:
     ):
         """Show how the run went and whether there is anything left to resume."""
         stats = tracker.get_stats()
-        
-        console.print("\n" + "="*60)
+
+        console.print("\n" + "=" * 60)
         console.print("[bold cyan]📊 Scraping Statistics[/bold cyan]")
-        console.print("="*60)
-        
+        console.print("=" * 60)
+
         stats_table = Table(show_header=False, box=None)
         stats_table.add_column("Metric", style="cyan", width=25)
         stats_table.add_column("Value", style="green")

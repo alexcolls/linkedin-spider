@@ -118,11 +118,13 @@ class SessionManager:
 
                     driver.add_cookie(cookie)
                 except Exception as e:
-                    logger.warning(f"Failed to add cookie {cookie.get('name', 'unknown')}: {e}")
+                    logger.warning(
+                        f"Failed to add cookie {cookie.get('name', 'unknown')}: {e}"
+                    )
                     continue
 
             logger.info(f"✅ Injected {len(cookies)} cookies into browser session")
-            
+
             # Refresh page to apply cookies
             driver.refresh()
             return True
@@ -181,7 +183,7 @@ class SessionManager:
         """
         try:
             current_url = driver.current_url
-            
+
             # Check if on LinkedIn and not on login page
             if "linkedin.com" in current_url and "login" not in current_url:
                 logger.info("✅ Session validated - user is authenticated")
@@ -195,10 +197,10 @@ class SessionManager:
             return False
 
     def create_k8s_secret_yaml(
-        self, 
-        cookies: List[Dict], 
+        self,
+        cookies: List[Dict],
         output_path: Path,
-        secret_name: str = "linkedin-cookies"
+        secret_name: str = "linkedin-cookies",
     ) -> bool:
         """
         Create Kubernetes Secret YAML file for cookies.
@@ -213,7 +215,7 @@ class SessionManager:
         """
         try:
             encoded_cookies = self.cookies_to_base64(cookies)
-            
+
             yaml_content = f"""apiVersion: v1
 kind: Secret
 metadata:

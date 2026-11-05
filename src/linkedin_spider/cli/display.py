@@ -8,7 +8,6 @@ from rich.console import Console
 from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
-from rich.text import Text
 
 from linkedin_spider.models import Profile
 
@@ -73,7 +72,7 @@ def get_key():
         tty.setraw(sys.stdin.fileno())
         ch = sys.stdin.read(1)
         # Handle arrow keys (ESC sequences)
-        if ch == '\x1b':
+        if ch == "\x1b":
             ch = sys.stdin.read(2)
         return ch
     finally:
@@ -82,7 +81,7 @@ def get_key():
 
 def show_menu(selected_index: int = 0):
     """Display interactive menu options with selection highlight.
-    
+
     Args:
         selected_index: Currently selected menu item index
     """
@@ -95,7 +94,7 @@ def show_menu(selected_index: int = 0):
         ("6", "❓  Help"),
         ("0", "🚪  Exit"),
     ]
-    
+
     menu_table = Table(show_header=False, box=None, padding=(0, 2))
     menu_table.add_column("Selector", style="dim", width=2)
     menu_table.add_column("Option", style="bold cyan", width=4)
@@ -104,7 +103,11 @@ def show_menu(selected_index: int = 0):
     for i, (option, description) in enumerate(menu_items):
         if i == selected_index:
             # Highlight selected item
-            menu_table.add_row("▶", f"[bold yellow]{option}[/bold yellow]", f"[bold yellow]{description}[/bold yellow]")
+            menu_table.add_row(
+                "▶",
+                f"[bold yellow]{option}[/bold yellow]",
+                f"[bold yellow]{description}[/bold yellow]",
+            )
         else:
             menu_table.add_row(" ", option, description)
 
@@ -242,34 +245,34 @@ def show_help():
 
 def interactive_menu_select() -> str:
     """Interactive menu selection with arrow keys.
-    
+
     Returns:
         Selected option as string ("1", "2", etc.)
     """
     menu_items = ["1", "2", "3", "4", "5", "6", "0"]
     selected_index = 0
-    
+
     try:
         while True:
             # Clear and redraw menu
             console.clear()
             show_welcome()
             show_menu(selected_index)
-            
+
             # Get user input
             console.print("\n[dim]Select option: [/dim]", end="")
             key = get_key()
-            
+
             # Handle arrow keys
-            if key == '[A':  # Up arrow
+            if key == "[A":  # Up arrow
                 selected_index = (selected_index - 1) % len(menu_items)
-            elif key == '[B':  # Down arrow
+            elif key == "[B":  # Down arrow
                 selected_index = (selected_index + 1) % len(menu_items)
-            elif key == '\r' or key == '\n':  # Enter
+            elif key == "\r" or key == "\n":  # Enter
                 return menu_items[selected_index]
             elif key in menu_items:  # Direct number input
                 return key
-            elif key == '\x03':  # Ctrl+C
+            elif key == "\x03":  # Ctrl+C
                 raise KeyboardInterrupt
     except Exception:
         # Fallback to text input if arrow keys don't work

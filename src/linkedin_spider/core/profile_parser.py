@@ -192,13 +192,17 @@ class ProfileParser:
 
         # Extract followers count
         try:
-            followers_elem = soup.find("p", class_="pvs-header__subtitle text-body-small")
+            followers_elem = soup.find(
+                "p", class_="pvs-header__subtitle text-body-small"
+            )
             if followers_elem:
                 followers_span = followers_elem.find("span")
                 if followers_span:
                     followers_text = followers_span.get_text(strip=True)
                     # Extract number from text like "1,234 followers"
-                    followers_text = followers_text.replace(" followers", "").replace(",", "")
+                    followers_text = followers_text.replace(" followers", "").replace(
+                        ",", ""
+                    )
                     try:
                         data["followers"] = int(followers_text)
                     except ValueError:

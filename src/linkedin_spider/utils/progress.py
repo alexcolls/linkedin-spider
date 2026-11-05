@@ -21,7 +21,9 @@ class ProgressTracker:
         Args:
             session_name: Optional session name. If None, generates timestamp-based name.
         """
-        self.session_name = session_name or f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        self.session_name = (
+            session_name or f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        )
         self.progress_file = config.data_dir / f".progress_{self.session_name}.json"
         self.progress_data: Dict = self._load_progress()
 
@@ -140,7 +142,11 @@ class ProgressTracker:
         if url in self.progress_data["remaining_urls"]:
             self.progress_data["remaining_urls"].remove(url)
 
-        failure_entry = {"url": url, "reason": reason, "timestamp": datetime.now().isoformat()}
+        failure_entry = {
+            "url": url,
+            "reason": reason,
+            "timestamp": datetime.now().isoformat(),
+        }
 
         if url not in [f["url"] for f in self.progress_data["failed_urls"]]:
             self.progress_data["failed_urls"].append(failure_entry)
