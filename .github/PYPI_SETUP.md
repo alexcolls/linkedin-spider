@@ -90,7 +90,7 @@ Before publishing, ensure:
 - [ ] Version bumped in `pyproject.toml`
 - [ ] `CHANGELOG.md` updated
 - [ ] All tests pass: `poetry run pytest`
-- [ ] Code formatted: `poetry run black .`
+- [ ] Code formatted: `poetry run ruff format .`
 - [ ] Linting clean: `poetry run ruff check .`
 - [ ] Type checking: `poetry run mypy src/`
 - [ ] `README.md` is up to date

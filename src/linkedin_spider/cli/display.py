@@ -223,13 +223,13 @@ def show_help():
    View scraped profiles or export them to CSV, JSON, or Excel.
 
 [cyan]5. Configure Settings[/cyan]
-   Adjust delays, VPN settings, export formats, etc.
+   Adjust delays, export formats, etc.
    Edit config.yaml or .env file directly.
 
 [yellow]⚠️  Important Notes:[/yellow]
-• Respect LinkedIn's Terms of Service
-• Use delays to avoid detection
-• Consider using VPN for IP rotation
+• LinkedIn's terms prohibit automated access, and it can restrict your account
+• Scraped profiles are personal data: GDPR and CCPA may apply
+• Keep the delays: they limit the load you put on the site
 • Keep your credentials secure
 
 [blue]For more info, visit the documentation[/blue]
