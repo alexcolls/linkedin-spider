@@ -1,13 +1,14 @@
 """Google Search scraper for finding LinkedIn profiles."""
 
 import time
-from typing import List
+from typing import List, Optional
 
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from selenium.common.exceptions import NoSuchElementException
 
 from linkedin_spider.core.browser import browser
+from linkedin_spider.models import is_profile_url, unique_profile_urls
 from linkedin_spider.utils import config, logger
 
 
@@ -37,7 +38,7 @@ class GoogleSearchScraper:
 
         return query
 
-    def search(self, keywords: List[str], max_pages: int = None) -> List[str]:
+    def search(self, keywords: List[str], max_pages: Optional[int] = None) -> List[str]:
         """
         Search Google for LinkedIn profiles matching keywords.
 
@@ -70,7 +71,7 @@ class GoogleSearchScraper:
                 cookies_button = browser.driver.find_element(By.ID, "L2AGLb")
                 cookies_button.click()
                 time.sleep(1)
-            except:
+            except Exception:
                 pass  # No cookies prompt
 
             # Find search input
@@ -97,7 +98,7 @@ class GoogleSearchScraper:
                 time.sleep(2)
 
             # Remove duplicates
-            self.urls = list(set(self.urls))
+            self.urls = unique_profile_urls(self.urls)
             logger.info(f"✅ Total unique LinkedIn URLs found: {len(self.urls)}")
 
             return self.urls
@@ -114,31 +115,17 @@ class GoogleSearchScraper:
             True if CAPTCHA detected, False otherwise
         """
         try:
-            # Check for reCAPTCHA iframe
-            captcha_selectors = [
-                "iframe[src*='recaptcha']",
-                "#recaptcha",
-                "[id*='captcha']",
-                "[class*='captcha']",
-                "div#g-recaptcha",
-            ]
-            
-            for selector in captcha_selectors:
-                try:
-                    elements = browser.driver.find_elements(By.CSS_SELECTOR, selector)
-                    if elements:
-                        return True
-                except:
-                    continue
-            
-            # Check page source for captcha-related text
-            page_source = browser.driver.page_source.lower()
-            captcha_keywords = ['captcha', 'unusual traffic', 'automated requests']
-            if any(keyword in page_source for keyword in captcha_keywords):
+            # Only Google's block page and an actual challenge count. Page text doesn't:
+            # results for a search about CAPTCHAs contain the word too.
+            if "/sorry/" in browser.driver.current_url:
                 return True
-                
-            return False
-            
+
+            return bool(
+                browser.driver.find_elements(
+                    By.CSS_SELECTOR, "iframe[src*='recaptcha']"
+                )
+            )
+
         except Exception as e:
             logger.debug(f"Error detecting CAPTCHA: {e}")
             return False
@@ -148,6 +135,12 @@ class GoogleSearchScraper:
         Wait for user to resolve CAPTCHA.
         Automatically detects when CAPTCHA is resolved.
         """
+        if config.headless:
+            logger.error(
+                "CAPTCHA shown, but nobody can solve it in a headless browser."
+            )
+            return
+
         logger.warning("⚠️  CAPTCHA detected! Please solve it in the browser window.")
         print("\n" + "="*60)
         print("⚠️  CAPTCHA DETECTED")
@@ -193,7 +186,7 @@ class GoogleSearchScraper:
         Returns:
             List of URLs found on current page
         """
-        page_urls = []
+        page_urls: List[str] = []
 
         try:
             # Check for CAPTCHA first
@@ -204,24 +197,16 @@ class GoogleSearchScraper:
                     logger.error("CAPTCHA still present. Aborting page scrape.")
                     return page_urls
 
-            # Find all result divs
-            result_divs = browser.driver.find_elements(By.CLASS_NAME, "yuRUbf")
+            # Google's class names change often, so match the links themselves
+            links = browser.driver.find_elements(
+                By.CSS_SELECTOR, 'a[href*="linkedin.com/in/"]'
+            )
 
-            # If no results found, might be a captcha or end of results
-            if not result_divs:
-                if self._detect_captcha():
-                    self._wait_for_captcha_resolution()
-                    # Try again after captcha
-                    result_divs = browser.driver.find_elements(By.CLASS_NAME, "yuRUbf")
-
-            for result_div in result_divs:
+            for link in links:
                 try:
-                    # Get the link element
-                    link_element = result_div.find_element(By.CSS_SELECTOR, "a")
-                    url = link_element.get_attribute("href")
+                    url = link.get_attribute("href")
 
-                    # Check if it's a LinkedIn profile URL
-                    if url and "linkedin.com/in/" in url:
+                    if url and is_profile_url(url):
                         page_urls.append(url)
 
                 except Exception as e:
@@ -277,7 +262,7 @@ class GoogleSearchScraper:
         Returns:
             List of keywords
         """
-        keywords = []
+        keywords: List[str] = []
 
         print("\n🔍 Enter search keywords (press Enter with empty input to finish):")
 
