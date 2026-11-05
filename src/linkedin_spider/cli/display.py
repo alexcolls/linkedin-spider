@@ -1,18 +1,16 @@
 """Display utilities for CLI interface."""
 
 import sys
-import tty
-import termios
 from pathlib import Path
 from typing import List, Optional
 
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
 from linkedin_spider.models import Profile
-
 
 console = Console()
 
@@ -65,6 +63,10 @@ def show_welcome():
 
 def get_key():
     """Get a single keypress from the user."""
+    # Unix only. On other platforms this raises, and the menu falls back to typed input.
+    import termios
+    import tty
+
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
     try:
@@ -115,6 +117,15 @@ def show_menu(selected_index: int = 0):
     )
 
 
+def _cell(text: str, limit: Optional[int] = None) -> str:
+    """Format scraped text for a table: it's untrusted, so it can't carry markup."""
+    if not text:
+        return "[dim]-[/dim]"
+    if limit and len(text) > limit:
+        text = text[:limit] + "..."
+    return escape(text)
+
+
 def show_profiles_table(profiles: List[Profile], max_rows: Optional[int] = 20):
     """
     Display profiles in a formatted table.
@@ -142,10 +153,10 @@ def show_profiles_table(profiles: List[Profile], max_rows: Optional[int] = 20):
     for i, profile in enumerate(display_profiles, 1):
         table.add_row(
             str(i),
-            profile.name or "[dim]Unknown[/dim]",
-            profile.title[:50] + "..." if len(profile.title) > 50 else profile.title or "[dim]-[/dim]",
-            profile.company[:30] + "..." if len(profile.company) > 30 else profile.company or "[dim]-[/dim]",
-            profile.location or "[dim]-[/dim]",
+            _cell(profile.name),
+            _cell(profile.title, limit=50),
+            _cell(profile.company, limit=30),
+            _cell(profile.location),
             str(profile.followers) if profile.followers > 0 else "[dim]-[/dim]",
         )
 
@@ -177,7 +188,7 @@ def show_urls_list(urls: List[str], max_rows: Optional[int] = 20):
     display_urls = urls[:max_rows] if max_rows else urls
 
     for i, url in enumerate(display_urls, 1):
-        table.add_row(str(i), url)
+        table.add_row(str(i), escape(url))
 
     console.print(table)
 
@@ -241,7 +252,6 @@ def interactive_menu_select() -> str:
         while True:
             # Clear and redraw menu
             console.clear()
-            from linkedin_spider.cli.display import show_welcome
             show_welcome()
             show_menu(selected_index)
             
@@ -279,7 +289,11 @@ def prompt(message: str, default: Optional[str] = None) -> str:
     if default:
         message = f"{message} [{default}]"
 
-    return console.input(f"[bold cyan]➤[/bold cyan] {message}: ").strip() or default or ""
+    return (
+        console.input(f"[bold cyan]➤[/bold cyan] {escape(message)}: ").strip()
+        or default
+        or ""
+    )
 
 
 def confirm(message: str, default: bool = False) -> bool:
@@ -304,19 +318,19 @@ def confirm(message: str, default: bool = False) -> bool:
 
 def success(message: str):
     """Display success message."""
-    console.print(f"[green]✓[/green] {message}")
+    console.print(f"[green]✓[/green] {escape(message)}")
 
 
 def error(message: str):
     """Display error message."""
-    console.print(f"[red]✗[/red] {message}")
+    console.print(f"[red]✗[/red] {escape(message)}")
 
 
 def warning(message: str):
     """Display warning message."""
-    console.print(f"[yellow]⚠[/yellow] {message}")
+    console.print(f"[yellow]⚠[/yellow] {escape(message)}")
 
 
 def info(message: str):
     """Display info message."""
-    console.print(f"[blue]ℹ[/blue] {message}")
+    console.print(f"[blue]ℹ[/blue] {escape(message)}")

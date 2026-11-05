@@ -41,9 +41,11 @@ def setup_logger(
 
     # Console handler with Rich
     if config.console_logging:
+        # markup stays off: messages carry page text and exception messages, and a
+        # stray "[/x]" in them would make the logging call itself raise.
         console_handler = RichHandler(
             rich_tracebacks=True,
-            markup=True,
+            markup=False,
             show_time=True,
             show_path=False,
         )
