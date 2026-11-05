@@ -215,7 +215,8 @@ def show_help():
    Requires LinkedIn login credentials in .env file.
 
 [cyan]3. Auto-Connect to Profiles[/cyan]
-   Automatically send connection requests to profiles.
+   Go through collected profiles and send connection requests.
+   You confirm each person, and each run has a limit.
    Requires LinkedIn login. Use responsibly!
 
 [cyan]4. View/Export Results[/cyan]

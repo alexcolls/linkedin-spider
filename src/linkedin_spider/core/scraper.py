@@ -1,6 +1,6 @@
 """Main scraper orchestrator for LinkedIn Spider."""
 
-from typing import List, Optional
+from typing import Callable, Dict, List, Optional
 
 from rich.console import Console
 from rich.markup import escape
@@ -23,6 +23,9 @@ from linkedin_spider.utils.progress import ProgressTracker
 # Failing this many profiles in a row means something is wrong with the session or
 # the browser, not with the profiles. Stop rather than burn through the whole list.
 MAX_CONSECUTIVE_FAILURES = 5
+
+# Connection requests are sent one at a time, with a person confirming each.
+MAX_CONNECTS_PER_RUN = 10
 
 
 class LinkedInScraper:
@@ -305,52 +308,49 @@ class LinkedInScraper:
 
     def connect_to_profiles(
         self,
-        urls: Optional[List[str]] = None,
+        urls: List[str],
+        confirm: Callable[[str, str], bool],
         login_first: bool = True,
-    ) -> int:
+    ) -> Dict[str, int]:
         """
-        Send connection requests to LinkedIn profiles.
+        Offer to send connection requests, one person at a time.
+
+        Stops after MAX_CONNECTS_PER_RUN requests have been sent. Declining someone
+        doesn't count towards that.
 
         Args:
-            urls: List of profile URLs to connect to. If None, uses collected URLs.
+            urls: List of profile URLs to go through
+            confirm: Called with (name, url) before each request. Required, so that
+                a person decides every request.
             login_first: Whether to log in to LinkedIn first
 
         Returns:
-            Number of successful connection requests
+            Number of requests "sent", "declined" and "skipped"
         """
-        # Use provided URLs or collected URLs
-        urls_to_connect = urls or self.profile_urls
+        counts = {"sent": 0, "declined": 0, "skipped": 0}
+        urls_to_connect = unique_profile_urls(urls)
 
         if not urls_to_connect:
             logger.error("No profile URLs to connect to")
-            return 0
+            return counts
 
         # Start browser
         browser.start()
 
         # Log in to LinkedIn
-        if login_first:
-            if not browser.login_linkedin():
-                logger.error("LinkedIn login required for connections")
-                return 0
+        if login_first and not browser.login_linkedin():
+            logger.error("LinkedIn login required for connections")
+            return counts
 
-        # Send connection requests with progress bar
-        successful_connections = 0
+        try:
+            for url in urls_to_connect:
+                if counts["sent"] >= MAX_CONNECTS_PER_RUN:
+                    logger.warning(
+                        f"Stopped at the limit of {MAX_CONNECTS_PER_RUN} requests per run"
+                    )
+                    break
 
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            TaskProgressColumn(),
-        ) as progress:
-            task = progress.add_task("Sending connection requests...", total=len(urls_to_connect))
-
-            for i, url in enumerate(urls_to_connect, 1):
-                progress.update(task, description=f"Connecting {i}/{len(urls_to_connect)}")
-
-                # Send connection request
-                if profile_parser.connect_to_profile(url):
-                    successful_connections += 1
+                counts[profile_parser.connect_to_profile(url, confirm)] += 1
 
                 # Check VPN switching
                 if vpn_manager.should_switch():
@@ -359,10 +359,16 @@ class LinkedInScraper:
                     browser.restart()
                     browser.login_linkedin()
 
-                progress.advance(task)
+        except SessionBlocked as e:
+            logger.error(f"Stopped: {e}")
+        except KeyboardInterrupt:
+            logger.warning("Interrupted")
 
-        logger.info(f"✅ Successfully sent {successful_connections} connection requests")
-        return successful_connections
+        logger.info(
+            f"✅ Connection requests: {counts['sent']} sent, "
+            f"{counts['declined']} declined, {counts['skipped']} skipped"
+        )
+        return counts
 
     def get_profiles(self) -> List[Profile]:
         """

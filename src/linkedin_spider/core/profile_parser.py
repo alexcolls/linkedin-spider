@@ -1,10 +1,11 @@
 """Profile parser for extracting LinkedIn profile data."""
 
 import time
-from typing import Optional
+from typing import Callable, List, Optional
 from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
+from selenium.webdriver.common.by import By
 
 from linkedin_spider.core.browser import browser
 from linkedin_spider.models import Profile, is_profile_url
@@ -14,9 +15,37 @@ from linkedin_spider.utils import config, logger
 # prove something. Compared against the path, so /in/login-expert is unaffected.
 BLOCKED_PATHS = ("/authwall", "/login", "/uas/login", "/checkpoint", "/signup")
 
+CONNECT_BUTTONS = "main button[aria-label]"
+SEND_BUTTONS = (
+    "[role='dialog'] button[aria-label='Send now'], "
+    "[role='dialog'] button[aria-label='Send without a note']"
+)
+
 
 class SessionBlocked(Exception):
     """LinkedIn showed a login wall or a challenge instead of the profile."""
+
+
+def find_connect_button(buttons: List, name: str):
+    """
+    Pick the button that invites this person, and nobody else.
+
+    Pages also show Connect buttons for other people, so this needs exactly one
+    button naming them. When in doubt it returns None and no request is sent.
+
+    Args:
+        buttons: Candidate button elements
+        name: Name of the person whose profile is open
+
+    Returns:
+        The matching button, or None
+    """
+    if not name:
+        return None
+
+    expected = f"Invite {name} to connect"
+    matches = [b for b in buttons if b.get_attribute("aria-label") == expected]
+    return matches[0] if len(matches) == 1 else None
 
 
 class ProfileParser:
@@ -179,51 +208,61 @@ class ProfileParser:
 
         return data
 
-    def connect_to_profile(self, url: str) -> bool:
+    def connect_to_profile(self, url: str, confirm: Callable[[str, str], bool]) -> str:
         """
-        Send connection request to a LinkedIn profile.
+        Offer to send one connection request, asking a person first.
 
         Args:
             url: LinkedIn profile URL
+            confirm: Called with (name, url). The request is sent only if it returns True.
 
         Returns:
-            True if connection sent, False otherwise
+            "sent", "declined", or "skipped" if no request could safely be sent
+
+        Raises:
+            SessionBlocked: If LinkedIn showed a login wall or challenge
         """
+        if not is_profile_url(url):
+            logger.error(f"Not a LinkedIn profile URL, not opening it: {url}")
+            return "skipped"
+
         try:
-            logger.info(f"Connecting to profile: {url}")
-
-            # Navigate to profile
             browser.get(url)
+            self._raise_if_blocked()
             time.sleep(3)
+            self._raise_if_blocked()
 
-            # Try to find and click connect button
-            try:
-                # Look for "Connect" button
-                from selenium.webdriver.common.by import By
+            name = Profile._clean_text(
+                browser.driver.find_element(By.CSS_SELECTOR, "main h1").text
+            )
+            button = find_connect_button(
+                browser.driver.find_elements(By.CSS_SELECTOR, CONNECT_BUTTONS), name
+            )
+            if button is None:
+                logger.warning(f"No Connect button for {name or 'this person'}: {url}")
+                return "skipped"
 
-                connect_button = browser.driver.find_element(
-                    By.XPATH, "//button[contains(., 'Connect')]"
-                )
-                connect_button.click()
-                time.sleep(2)
+            if not confirm(name, url):
+                return "declined"
 
-                # Click "Send" on the dialog
-                send_button = browser.driver.find_element(
-                    By.XPATH, "//button[@aria-label='Send now']"
-                )
-                send_button.click()
+            button.click()
+            time.sleep(2)
 
-                logger.info(f"✅ Connection request sent to {url}")
-                browser.random_delay()
-                return True
+            send_buttons = browser.driver.find_elements(By.CSS_SELECTOR, SEND_BUTTONS)
+            if len(send_buttons) != 1:
+                logger.warning(f"Couldn't find the Send button for {name}: {url}")
+                return "skipped"
 
-            except Exception as e:
-                logger.warning(f"Could not send connection request: {e}")
-                return False
+            send_buttons[0].click()
+            logger.info(f"✅ Connection request sent to {name}")
+            browser.random_delay()
+            return "sent"
 
+        except SessionBlocked:
+            raise
         except Exception as e:
             logger.error(f"Failed to connect to {url}: {e}")
-            return False
+            return "skipped"
 
 
 # Global profile parser instance
