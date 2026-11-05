@@ -30,7 +30,7 @@ class DistributedWorker:
         self.consumer = None
         
         # Session cookies path (from env or K8s secret mount)
-        self.cookie_path = os.getenv("SESSION_COOKIE_PATH", "/tmp/linkedin_cookies.pkl")
+        self.cookie_path = os.getenv("SESSION_COOKIE_PATH", "data/linkedin_cookies.json")
         
         # Graceful shutdown handling
         signal.signal(signal.SIGTERM, self._handle_shutdown)

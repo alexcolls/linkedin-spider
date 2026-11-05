@@ -24,4 +24,4 @@ data:
   LOG_LEVEL: "INFO"
   
   # Session
-  SESSION_COOKIE_PATH: "/tmp/linkedin_cookies.pkl"
+  SESSION_COOKIE_PATH: "/tmp/linkedin_cookies.json"

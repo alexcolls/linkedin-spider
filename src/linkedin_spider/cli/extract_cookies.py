@@ -9,8 +9,8 @@ from rich.console import Console
 from rich.panel import Panel
 
 from linkedin_spider.core.browser import browser
-from linkedin_spider.utils.session import session_manager
 from linkedin_spider.utils.logger import logger
+from linkedin_spider.utils.session import session_manager
 
 console = Console()
 app = typer.Typer()
@@ -19,10 +19,7 @@ app = typer.Typer()
 @app.command()
 def extract(
     output: str = typer.Option(
-        "data/linkedin_cookies.pkl",
-        "--output",
-        "-o",
-        help="Path to save cookies"
+        "data/linkedin_cookies.json", "--output", "-o", help="Path to save cookies"
     ),
     k8s_secret: bool = typer.Option(
         False,

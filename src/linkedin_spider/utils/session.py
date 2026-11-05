@@ -2,10 +2,10 @@
 
 import base64
 import json
-import pickle
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from linkedin_spider.utils.export import create_private_file
 from linkedin_spider.utils.logger import logger
 
 
@@ -19,7 +19,7 @@ class SessionManager:
         Args:
             cookie_path: Path to store/load cookies. If None, uses default.
         """
-        self.cookie_path = cookie_path or Path("/tmp/linkedin_cookies.pkl")
+        self.cookie_path = cookie_path or Path("data/linkedin_cookies.json")
 
     def extract_cookies(self, driver) -> List[Dict]:
         """
@@ -41,7 +41,7 @@ class SessionManager:
 
     def save_cookies(self, cookies: List[Dict], path: Optional[Path] = None) -> bool:
         """
-        Save cookies to file.
+        Save cookies to a file only the owner can read. They give full account access.
 
         Args:
             cookies: List of cookie dictionaries
@@ -51,11 +51,10 @@ class SessionManager:
             True if successful, False otherwise
         """
         save_path = path or self.cookie_path
-        save_path.parent.mkdir(parents=True, exist_ok=True)
 
         try:
-            with open(save_path, "wb") as f:
-                pickle.dump(cookies, f)
+            with open(create_private_file(save_path), "w", encoding="utf-8") as f:
+                json.dump(cookies, f)
             logger.info(f"✅ Saved cookies to {save_path}")
             return True
         except Exception as e:
@@ -79,8 +78,8 @@ class SessionManager:
             return []
 
         try:
-            with open(load_path, "rb") as f:
-                cookies = pickle.load(f)
+            with open(load_path, "r", encoding="utf-8") as f:
+                cookies = json.load(f)
             logger.info(f"✅ Loaded {len(cookies)} cookies from {load_path}")
             return cookies
         except Exception as e:
@@ -224,11 +223,9 @@ type: Opaque
 data:
   cookies: {encoded_cookies}
 """
-            
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(output_path, "w") as f:
-                f.write(yaml_content)
-            
+
+            create_private_file(output_path).write_text(yaml_content, encoding="utf-8")
+
             logger.info(f"✅ Created Kubernetes Secret YAML at {output_path}")
             return True
 

@@ -69,7 +69,7 @@ services:
       HEADLESS: "true"
       
       # Session
-      SESSION_COOKIE_PATH: /app/data/linkedin_cookies.pkl
+      SESSION_COOKIE_PATH: /app/data/linkedin_cookies.json
       
       # Logging
       LOG_LEVEL: INFO
