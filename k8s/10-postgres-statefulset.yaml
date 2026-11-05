@@ -37,7 +37,10 @@ spec:
         - name: POSTGRES_USER
           value: "postgres"
         - name: POSTGRES_PASSWORD
-          value: "postgres"
+          valueFrom:
+            secretKeyRef:
+              name: linkedin-credentials
+              key: POSTGRES_PASSWORD
         - name: POSTGRES_DB
           value: "linkedin_spider"
         - name: PGDATA
@@ -94,8 +97,8 @@ spec:
         env:
         - name: DATABASE_URL
           valueFrom:
-            configMapKeyRef:
-              name: linkedin-spider-config
+            secretKeyRef:
+              name: linkedin-credentials
               key: DATABASE_URL
         command:
         - python

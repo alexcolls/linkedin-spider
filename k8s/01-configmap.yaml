@@ -4,9 +4,6 @@ metadata:
   name: linkedin-spider-config
   namespace: linkedin-spider
 data:
-  # Database
-  DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/linkedin_spider"
-  
   # Redis
   REDIS_URL: "redis://redis:6379/0"
   QUEUE_NAME: "linkedin:urls"
