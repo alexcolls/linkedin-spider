@@ -227,7 +227,7 @@ def scrape(
 
 @app.command()
 def worker():
-    """Run in distributed worker mode (for Kubernetes/Docker deployment)."""
+    """Run in distributed worker mode (unsupported and not working, see README-K8S.md)."""
     from linkedin_spider.core.worker import start_worker
     
     try:
