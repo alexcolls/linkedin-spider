@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 
 from linkedin_spider.core.browser import browser
-from linkedin_spider.models import Profile
+from linkedin_spider.models import Profile, is_profile_url
 from linkedin_spider.utils import config, logger
 
 # Where LinkedIn sends you instead of a profile when it wants you to log in or
@@ -41,6 +41,10 @@ class ProfileParser:
         Raises:
             SessionBlocked: If LinkedIn showed a login wall or challenge
         """
+        if not is_profile_url(url):
+            logger.error(f"Not a LinkedIn profile URL, not opening it: {url}")
+            return None
+
         try:
             logger.info(f"Parsing profile: {url}")
 
