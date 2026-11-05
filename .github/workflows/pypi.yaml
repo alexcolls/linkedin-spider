@@ -14,6 +14,9 @@ on:
           - pypi
           - testpypi
 
+permissions:
+  contents: read
+
 jobs:
   build-and-publish:
     name: 🚀 Build and Publish Package
@@ -31,10 +34,15 @@ jobs:
       - name: 📦 Install Poetry
         uses: snok/install-poetry@v1
         with:
-          version: 1.7.1
+          version: 2.5.1
           virtualenvs-create: true
           virtualenvs-in-project: true
-      
+
+      - name: 🧪 Run tests
+        run: |
+          poetry install -E excel
+          poetry run pytest -q
+
       - name: 🔍 Verify version
         run: |
           VERSION=$(poetry version -s)
