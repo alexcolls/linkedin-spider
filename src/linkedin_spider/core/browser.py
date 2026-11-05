@@ -150,7 +150,7 @@ class BrowserManager:
                 email_field = self.wait.until(
                     EC.presence_of_element_located((By.ID, "session_key"))
                 )
-            except:
+            except TimeoutException:
                 # Try alternative selector
                 email_field = self.driver.find_element(By.CLASS_NAME, "input__input")
 
@@ -208,16 +208,12 @@ class BrowserManager:
             return
 
         start_time = time.time()
-        initial_scroll = 0
-        final_scroll = 1000
+        scroll_y = 1000
 
         while time.time() - start_time < duration:
             try:
-                self.driver.execute_script(
-                    f"window.scrollTo({initial_scroll}, {final_scroll})"
-                )
-                initial_scroll = final_scroll
-                final_scroll += 1000
+                self.driver.execute_script(f"window.scrollTo(0, {scroll_y})")
+                scroll_y += 1000
                 time.sleep(3)
             except Exception as e:
                 logger.debug(f"Scroll error: {e}")
@@ -231,11 +227,12 @@ class BrowserManager:
             min_seconds: Minimum delay. If None, uses config value.
             max_seconds: Maximum delay. If None, uses config value.
         """
-        min_delay = min_seconds or config.min_delay
-        max_delay = max_seconds or config.max_delay
+        min_delay = config.min_delay if min_seconds is None else min_seconds
+        max_delay = config.max_delay if max_seconds is None else max_seconds
 
-        delay = random.randint(min_delay, max_delay)
-        logger.debug(f"Waiting {delay} seconds...")
+        # A max below the min is a config mistake: honour the larger minimum
+        delay = random.uniform(min_delay, max(min_delay, max_delay))
+        logger.debug(f"Waiting {delay:.1f} seconds...")
         time.sleep(delay)
 
     def get(self, url: str):
