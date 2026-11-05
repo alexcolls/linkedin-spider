@@ -41,9 +41,6 @@ env.bak/
 venv.bak/
 .venv/
 
-# Poetry
-poetry.lock
-
 # Environment variables
 .env
 .env.local

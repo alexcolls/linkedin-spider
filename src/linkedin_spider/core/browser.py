@@ -4,16 +4,14 @@ import os
 import random
 import time
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from webdriver_manager.chrome import ChromeDriverManager
 
 from linkedin_spider.utils import config, logger
 
@@ -28,8 +26,9 @@ class BrowserManager:
 
     def __init__(self):
         """Initialize browser manager."""
-        self.driver: Optional[webdriver.Chrome] = None
-        self.wait: Optional[WebDriverWait] = None
+        # A Chrome driver and its WebDriverWait once start() has run, otherwise None
+        self.driver: Any = None
+        self.wait: Any = None
 
     def create_driver(self) -> webdriver.Chrome:
         """
@@ -70,15 +69,13 @@ class BrowserManager:
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-gpu")
 
-        # Create service
-        service = Service(ChromeDriverManager().install())
         # The sandbox protects a logged-in browser from the pages it loads, so only
         # environments that can't run it (containers) should turn it off.
         if os.getenv("CHROME_NO_SANDBOX"):
             chrome_options.add_argument("--no-sandbox")
 
-        # Create driver
-        driver = webdriver.Chrome(service=service, options=chrome_options)
+        # Selenium Manager finds or downloads a matching driver
+        driver = webdriver.Chrome(options=chrome_options)
 
         # Set page load timeout
         driver.set_page_load_timeout(60)

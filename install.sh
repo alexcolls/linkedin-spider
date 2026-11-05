@@ -18,6 +18,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 MAGENTA='\033[0;35m'
+BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 # Script directory
@@ -134,11 +135,11 @@ check_python() {
         
         print_success "Python found: $PYTHON_VERSION"
         
-        if [[ "$PYTHON_MAJOR" -ge 3 ]] && [[ "$PYTHON_MINOR" -ge 9 ]]; then
-            print_success "Python version is compatible (>= 3.9)"
+        if [[ "$PYTHON_MAJOR" -ge 3 ]] && [[ "$PYTHON_MINOR" -ge 11 ]]; then
+            print_success "Python version is compatible (>= 3.11)"
             return 0
         else
-            print_error "Python version must be >= 3.9"
+            print_error "Python version must be >= 3.11"
             print_info "Current version: $PYTHON_VERSION"
             return 1
         fi
