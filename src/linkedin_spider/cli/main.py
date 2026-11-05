@@ -7,10 +7,12 @@ from typing import Optional
 
 import typer
 
+from linkedin_spider import __version__
 from linkedin_spider.cli import commands, display
 from linkedin_spider.core import scraper
 from linkedin_spider.utils import config, exporter, logger
 from linkedin_spider.utils.export import load_urls, save_urls
+from linkedin_spider.utils.logger import add_file_handler, enable_debug
 
 
 class ExportFormat(str, Enum):
@@ -64,6 +66,9 @@ def callback(
     By default, runs in interactive mode with a menu.
     Use subcommands for specific operations.
     """
+    if ctx.invoked_subcommand != "version":
+        add_file_handler()
+
     # If a subcommand is provided, don't run the interactive menu
     if ctx.invoked_subcommand is not None:
         return
@@ -164,7 +169,7 @@ def scrape(
     try:
         # Enable debug logging if requested
         if debug:
-            logger.setLevel("DEBUG")
+            enable_debug()
             display.info("Debug logging enabled")
 
         # Catch an export problem now, not after hours of scraping
@@ -295,8 +300,10 @@ def sessions(
 @app.command()
 def version():
     """Show version information."""
-    display.console.print("[bold cyan]LinkedIn Spider v0.1.0[/bold cyan]")
-    display.console.print("[dim]A professional CLI tool for scraping LinkedIn profiles[/dim]")
+    display.console.print(f"[bold cyan]LinkedIn Spider v{__version__}[/bold cyan]")
+    display.console.print(
+        "[dim]A professional CLI tool for scraping LinkedIn profiles[/dim]"
+    )
 
 
 if __name__ == "__main__":

@@ -69,8 +69,12 @@ class Exporter:
         Args:
             data_dir: Directory to save exports. If None, uses config value.
         """
-        self.data_dir = data_dir or config.data_dir
-        self.data_dir.mkdir(parents=True, exist_ok=True)
+        self._data_dir = data_dir
+
+    @property
+    def data_dir(self) -> Path:
+        """Directory exports are written to."""
+        return self._data_dir or config.data_dir
 
     def _generate_filename(self, base_name: str, extension: str) -> Path:
         """
