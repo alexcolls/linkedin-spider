@@ -124,13 +124,10 @@ class ProfileParser:
 
         # Extract company
         try:
-            # Try multiple selectors for company
             company_elem = soup.find(
                 "h2",
                 class_="pv-text-details__right-panel-item-text hoverable-link-text break-words text-body-small inline",
             )
-            if not company_elem:
-                company_elem = soup.find("span", class_="text-body-small")
 
             if company_elem:
                 data["company"] = company_elem.get_text(strip=True)
