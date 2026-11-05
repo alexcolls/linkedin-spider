@@ -2,6 +2,7 @@
 
 import time
 from typing import Optional
+from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 
@@ -9,9 +10,23 @@ from linkedin_spider.core.browser import browser
 from linkedin_spider.models import Profile
 from linkedin_spider.utils import config, logger
 
+# Where LinkedIn sends you instead of a profile when it wants you to log in or
+# prove something. Compared against the path, so /in/login-expert is unaffected.
+BLOCKED_PATHS = ("/authwall", "/login", "/uas/login", "/checkpoint", "/signup")
+
+
+class SessionBlocked(Exception):
+    """LinkedIn showed a login wall or a challenge instead of the profile."""
+
 
 class ProfileParser:
     """Parses LinkedIn profile pages to extract data."""
+
+    def _raise_if_blocked(self):
+        """Stop if the browser ended up on a login wall or challenge page."""
+        path = urlparse(browser.current_url).path
+        if path.startswith(BLOCKED_PATHS):
+            raise SessionBlocked(f"LinkedIn redirected to {path}")
 
     def parse_profile(self, url: str) -> Optional[Profile]:
         """
@@ -22,18 +37,23 @@ class ProfileParser:
 
         Returns:
             Profile object if successful, None otherwise
+
+        Raises:
+            SessionBlocked: If LinkedIn showed a login wall or challenge
         """
         try:
             logger.info(f"Parsing profile: {url}")
 
             # Navigate to profile
             browser.get(url)
+            self._raise_if_blocked()
 
             # Random delay to mimic human behavior
             browser.random_delay()
 
             # Scroll to load all content
             browser.scroll_page(config.scroll_duration)
+            self._raise_if_blocked()
 
             # Get page source and parse with BeautifulSoup
             html = browser.page_source
@@ -41,6 +61,10 @@ class ProfileParser:
 
             # Extract profile data
             profile_data = self._extract_profile_data(soup, url)
+
+            if not profile_data["name"]:
+                logger.warning(f"No profile data found on page: {url}")
+                return None
 
             # Create Profile object
             profile = Profile(
@@ -53,9 +77,11 @@ class ProfileParser:
                 followers=profile_data.get("followers", 0),
             )
 
-            logger.info(f"✅ Parsed: {profile.name or 'Unknown'}")
+            logger.info(f"✅ Parsed: {profile.name}")
             return profile
 
+        except SessionBlocked:
+            raise
         except Exception as e:
             logger.error(f"Failed to parse {url}: {e}")
             return None

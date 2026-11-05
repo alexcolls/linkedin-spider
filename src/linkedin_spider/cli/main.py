@@ -1,12 +1,24 @@
 """Main CLI application for LinkedIn Spider."""
 
 import sys
+from enum import Enum
+from pathlib import Path
+from typing import Optional
 
 import typer
 
 from linkedin_spider.cli import commands, display
 from linkedin_spider.core import scraper
-from linkedin_spider.utils import logger
+from linkedin_spider.utils import config, exporter, logger
+from linkedin_spider.utils.export import load_urls, save_urls
+
+
+class ExportFormat(str, Enum):
+    """Formats profiles can be exported to."""
+
+    csv = "csv"
+    json = "json"
+    excel = "excel"
 
 
 app = typer.Typer(
@@ -72,7 +84,7 @@ def callback(
         # Cleanup
         try:
             scraper.close_browser()
-        except:
+        except Exception:
             pass
 
 
@@ -90,14 +102,10 @@ def search(
         display.success(f"Found {len(urls)} profile URLs")
 
         if save and urls:
-            from linkedin_spider.utils import config
             filepath = config.data_dir / "profile_urls.txt"
-            filepath.parent.mkdir(parents=True, exist_ok=True)
+            total = save_urls(filepath, urls)
 
-            with open(filepath, "w") as f:
-                f.write("\n".join(urls))
-
-            display.success(f"URLs saved to {filepath}")
+            display.success(f"URLs saved to {filepath} ({total} total)")
 
     except KeyboardInterrupt:
         display.warning("Interrupted by user")
@@ -111,11 +119,11 @@ def search(
 
 @app.command()
 def scrape(
-    url_file: str = typer.Option(
-        "data/profile_urls.txt",
+    url_file: Optional[str] = typer.Option(
+        None,
         "--urls",
         "-u",
-        help="File containing profile URLs (one per line)",
+        help="File containing profile URLs, one per line (default: profile_urls.txt in the data directory)",
     ),
     output: str = typer.Option(
         "profiles",
@@ -123,11 +131,11 @@ def scrape(
         "-o",
         help="Output filename (without extension)",
     ),
-    format: str = typer.Option(
-        "csv",
+    format: Optional[ExportFormat] = typer.Option(
+        None,
         "--format",
         "-f",
-        help="Export format (csv, json, excel)",
+        help="Export format (default: from config, otherwise csv)",
     ),
     resume: str = typer.Option(
         None,
@@ -154,12 +162,13 @@ def scrape(
 ):
     """Scrape profile data from URLs with resume and dry-run support."""
     try:
-        from pathlib import Path
-
         # Enable debug logging if requested
         if debug:
             logger.setLevel("DEBUG")
             display.info("Debug logging enabled")
+
+        # Catch an export problem now, not after hours of scraping
+        export_format = exporter.check_format(format.value if format else None)
 
         # Handle resume mode
         if resume:
@@ -167,15 +176,16 @@ def scrape(
             urls = None  # Will be loaded from session
         else:
             # Load URLs from file
-            url_path = Path(url_file)
+            url_path = (
+                Path(url_file) if url_file else config.data_dir / "profile_urls.txt"
+            )
             if not url_path.exists():
-                display.error(f"URL file not found: {url_file}")
+                display.error(f"URL file not found: {url_path}")
                 sys.exit(1)
 
-            with open(url_path, "r") as f:
-                urls = [line.strip() for line in f if line.strip()]
+            urls = load_urls(url_path)
 
-            display.info(f"Loaded {len(urls)} URLs from {url_file}")
+            display.info(f"Loaded {len(urls)} URLs from {url_path}")
 
         # Scrape
         profiles = scraper.scrape_profiles(
@@ -194,9 +204,9 @@ def scrape(
             display.success(f"Scraped {len(profiles)} profiles")
 
             # Export
-            from linkedin_spider.utils import exporter
-            filepath = exporter.export(profiles, format=format, filename=output)
+            filepath = exporter.export(profiles, format=export_format, filename=output)
             display.success(f"Exported to {filepath}")
+            scraper.finish_session()
         else:
             display.warning("No profiles scraped")
 
@@ -231,20 +241,27 @@ def sessions(
     cleanup: bool = typer.Option(False, "--cleanup", help="Clean up all session files"),
 ):
     """List and manage progress sessions."""
-    from linkedin_spider.utils.progress import ProgressTracker
     from rich.table import Table
-    
-    sessions_list = ProgressTracker.list_sessions()
-    
-    if cleanup:
-        for session in sessions_list:
+
+    from linkedin_spider.utils.progress import ProgressTracker
+
+    trackers = []
+    for session in ProgressTracker.list_sessions():
+        try:
             tracker = ProgressTracker.load_session(session)
-            if tracker:
-                tracker.cleanup()
-        display.success(f"Cleaned up {len(sessions_list)} session(s)")
+        except ValueError as e:
+            display.warning(str(e))
+            continue
+        if tracker:
+            trackers.append(tracker)
+
+    if cleanup:
+        for tracker in trackers:
+            tracker.cleanup()
+        display.success(f"Cleaned up {len(trackers)} session(s)")
         return
-    
-    if not sessions_list:
+
+    if not trackers:
         display.info("No active sessions found")
         return
     
@@ -258,21 +275,19 @@ def sessions(
     table.add_column("Remaining", justify="right", style="blue")
     table.add_column("Progress", justify="right")
     table.add_column("Updated", style="dim")
-    
-    for session in sessions_list:
-        tracker = ProgressTracker.load_session(session)
-        if tracker:
-            stats = tracker.get_stats()
-            table.add_row(
-                stats['session_name'],
-                str(stats['total_urls']),
-                str(stats['completed']),
-                str(stats['failed']),
-                str(stats['remaining']),
-                f"{stats['progress_percent']:.1f}%",
-                stats['updated_at'].split('T')[0],
-            )
-    
+
+    for tracker in trackers:
+        stats = tracker.get_stats()
+        table.add_row(
+            stats["session_name"],
+            str(stats["total_urls"]),
+            str(stats["completed"]),
+            str(stats["failed"]),
+            str(stats["remaining"]),
+            f"{stats['progress_percent']:.1f}%",
+            stats["updated_at"].split("T")[0],
+        )
+
     display.console.print(table)
     display.console.print("\n[dim]Resume with: linkedin-spider scrape --resume <session_name>[/dim]\n")
 

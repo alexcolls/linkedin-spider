@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
@@ -14,6 +15,11 @@ from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 
 from linkedin_spider.utils import config, logger
+
+# How long to wait for the feed after submitting the login form. A visible browser
+# gets long enough for a person to finish 2FA or a checkpoint.
+LOGIN_TIMEOUT_VISIBLE = 300
+LOGIN_TIMEOUT_HEADLESS = 15
 
 
 class BrowserManager:
@@ -164,16 +170,28 @@ class BrowserManager:
             )
             login_button.click()
 
-            # Wait for page to load
-            time.sleep(5)
-
-            # Check if login was successful
-            if "feed" in self.driver.current_url or "mynetwork" in self.driver.current_url:
-                logger.info("✅ LinkedIn login successful")
-                return True
-            else:
-                logger.warning("LinkedIn login may have failed - check for CAPTCHA or verification")
+            timeout = (
+                LOGIN_TIMEOUT_HEADLESS if config.headless else LOGIN_TIMEOUT_VISIBLE
+            )
+            logger.info(
+                f"Waiting up to {timeout}s for the feed. Complete any 2FA or "
+                "verification in the browser window."
+            )
+            try:
+                WebDriverWait(self.driver, timeout).until(
+                    lambda driver: (
+                        "feed" in driver.current_url
+                        or "mynetwork" in driver.current_url
+                    )
+                )
+            except TimeoutException:
+                logger.warning(
+                    "LinkedIn login failed - check for CAPTCHA or verification"
+                )
                 return False
+
+            logger.info("✅ LinkedIn login successful")
+            return True
 
         except Exception as e:
             logger.error(f"LinkedIn login failed: {e}")

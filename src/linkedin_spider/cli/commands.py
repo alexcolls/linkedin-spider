@@ -3,8 +3,9 @@
 from pathlib import Path
 
 from linkedin_spider.cli import display
-from linkedin_spider.core import scraper, google_scraper
+from linkedin_spider.core import google_scraper, scraper
 from linkedin_spider.utils import config, exporter
+from linkedin_spider.utils.export import load_urls, save_urls
 
 
 def search_profiles_command():
@@ -43,12 +44,9 @@ def search_profiles_command():
         if display.confirm("Save URLs to file?", default=True):
             filename = display.prompt("Filename (without extension)", default="profile_urls")
             filepath = config.data_dir / f"{filename}.txt"
-            filepath.parent.mkdir(parents=True, exist_ok=True)
+            total = save_urls(filepath, urls)
 
-            with open(filepath, "w") as f:
-                f.write("\n".join(urls))
-
-            display.success(f"URLs saved to {filepath}")
+            display.success(f"URLs saved to {filepath} ({total} total)")
     else:
         display.warning("No URLs found")
 
@@ -72,8 +70,7 @@ def scrape_profiles_command():
                 filepath = config.data_dir / filename
 
             if filepath.exists():
-                with open(filepath, "r") as f:
-                    urls = [line.strip() for line in f if line.strip()]
+                urls = load_urls(filepath)
                 scraper.profile_urls = urls
                 display.success(f"Loaded {len(urls)} URLs from {filepath}")
             else:
@@ -195,8 +192,9 @@ def export_results_command():
     try:
         filepath = exporter.export(profiles, format=export_format, filename=filename)
         display.success(f"Exported {len(profiles)} profiles to {filepath}")
-    except ImportError:
-        display.error("Excel export requires openpyxl. Install with: poetry install -E excel")
+        scraper.finish_session()
+    except ImportError as e:
+        display.error(str(e))
     except Exception as e:
         display.error(f"Export failed: {e}")
 
