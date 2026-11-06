@@ -33,7 +33,13 @@ class Config:
             with open(self.config_path, "r") as f:
                 self._config_data = yaml.safe_load(f) or {}
 
-    def get(self, key: str, default: Any = None, section: Optional[str] = None) -> Any:
+    def get(
+        self,
+        key: str,
+        default: Any = None,
+        section: Optional[str] = None,
+        env: bool = True,
+    ) -> Any:
         """
         Get configuration value.
 
@@ -41,13 +47,14 @@ class Config:
             key: Configuration key
             default: Default value if key not found
             section: YAML section to look in
+            env: Also check an environment variable named after the key. Turn off
+                for generic keys, which would pick up variables like $FILE or $LEVEL.
 
         Returns:
             Configuration value
         """
         # Try environment variable first (uppercase)
-        env_key = key.upper()
-        env_value = os.getenv(env_key)
+        env_value = os.getenv(key.upper()) if env else None
         if env_value is not None:
             # Convert string booleans
             if env_value.lower() in ("true", "false"):
@@ -67,12 +74,12 @@ class Config:
     @property
     def linkedin_email(self) -> str:
         """Get LinkedIn email from environment."""
-        return self.get("linkedin_email", "")
+        return os.getenv("LINKEDIN_EMAIL", "")
 
     @property
     def linkedin_password(self) -> str:
-        """Get LinkedIn password from environment."""
-        return self.get("linkedin_password", "")
+        """Get LinkedIn password from environment, exactly as written."""
+        return os.getenv("LINKEDIN_PASSWORD", "")
 
     @property
     def min_delay(self) -> int:
@@ -117,12 +124,16 @@ class Config:
     @property
     def vpn_enabled(self) -> bool:
         """Check if VPN switching is enabled."""
-        return self.get("enable_vpn", False) or self.get("enabled", False, "vpn")
+        return self.get("enable_vpn", False) or self.get(
+            "enabled", False, "vpn", env=False
+        )
 
     @property
     def vpn_command(self) -> str:
         """Get VPN command."""
-        return self.get("vpn_command", "") or self.get("command", "protonvpn-cli c -r", "vpn")
+        return self.get("vpn_command", "") or self.get(
+            "command", "protonvpn-cli c -r", "vpn", env=False
+        )
 
     @property
     def vpn_switch_frequency(self) -> int:
@@ -132,7 +143,7 @@ class Config:
     @property
     def data_dir(self) -> Path:
         """Get data directory path (relative to user's working directory)."""
-        dir_str = self.get("data_dir", "data") or self.get("data_dir", "data", "export")
+        dir_str = self.get("data_dir", "data", "export")
         # Use the user's working directory (preserved from wrapper script)
         # or fall back to current directory for development mode
         user_cwd = os.getenv("LINKEDIN_SPIDER_CWD")
@@ -143,7 +154,9 @@ class Config:
     @property
     def default_export_format(self) -> str:
         """Get default export format."""
-        return self.get("default_export_format", "csv") or self.get("default_format", "csv", "export")
+        return self.get("default_export_format") or self.get(
+            "default_format", "csv", "export", env=False
+        )
 
     @property
     def timestamp_filenames(self) -> bool:
@@ -153,17 +166,19 @@ class Config:
     @property
     def log_level(self) -> str:
         """Get log level."""
-        return self.get("log_level", "INFO") or self.get("level", "INFO", "logging")
+        return self.get("log_level") or self.get("level", "INFO", "logging", env=False)
 
     @property
     def log_file(self) -> str:
         """Get log file path."""
-        return self.get("log_file", "logs/linkedin-spider.log") or self.get("file", "logs/linkedin-spider.log", "logging")
+        return self.get("log_file") or self.get(
+            "file", "logs/linkedin-spider.log", "logging", env=False
+        )
 
     @property
     def console_logging(self) -> bool:
         """Check if console logging is enabled."""
-        return self.get("console", True, "logging")
+        return self.get("console", True, "logging", env=False)
 
 
 # Global config instance

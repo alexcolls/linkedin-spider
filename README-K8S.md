@@ -1,5 +1,7 @@
 # 🕷️ LinkedIn Spider - Kubernetes Deployment Guide
 
+> **⚠️ Unsupported and not working.** This distributed setup isn't maintained: the Docker image doesn't build, workers never load their session cookies, and the queue's retry logic is wrong. It's kept for reference, and only security problems get fixed. Use the single-machine CLI described in [README.md](README.md).
+
 ## Overview
 
 This guide covers deploying LinkedIn Spider as a distributed scraping system on Kubernetes with 1,000 worker pods. The architecture includes:
@@ -58,7 +60,7 @@ First, manually log in to LinkedIn and extract session cookies:
 
 ```bash
 # Run the cookie extraction wizard
-poetry run python -m linkedin_spider.cli.extract_cookies --k8s-secret -o data/linkedin_cookies.pkl -s k8s/linkedin-cookies-secret.yaml
+poetry run python -m linkedin_spider.cli.extract_cookies --k8s-secret -o data/linkedin_cookies.json -s k8s/linkedin-cookies-secret.yaml
 
 # This will:
 # 1. Open a browser

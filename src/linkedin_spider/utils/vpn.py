@@ -1,5 +1,6 @@
 """VPN management utilities for LinkedIn Spider."""
 
+import shlex
 import subprocess
 import time
 from typing import Optional
@@ -42,8 +43,7 @@ class VPNManager:
         try:
             logger.info(f"Connecting to VPN: {self.command}")
             result = subprocess.run(
-                self.command,
-                shell=True,
+                shlex.split(self.command),
                 capture_output=True,
                 text=True,
                 timeout=30,
@@ -76,23 +76,21 @@ class VPNManager:
 
         # Common disconnect commands for different VPN clients
         disconnect_commands = [
-            "protonvpn-cli d",
-            "nordvpn disconnect",
-            "expressvpn disconnect",
-            "killall openvpn",
+            ["protonvpn-cli", "d"],
+            ["nordvpn", "disconnect"],
+            ["expressvpn", "disconnect"],
         ]
 
         for cmd in disconnect_commands:
             try:
                 result = subprocess.run(
                     cmd,
-                    shell=True,
                     capture_output=True,
                     text=True,
                     timeout=10,
                 )
                 if result.returncode == 0:
-                    logger.info(f"VPN disconnected using: {cmd}")
+                    logger.info(f"VPN disconnected using: {shlex.join(cmd)}")
                     return True
             except Exception:
                 continue
@@ -112,16 +110,15 @@ class VPNManager:
 
         # Try common status commands
         status_commands = [
-            "protonvpn-cli status",
-            "nordvpn status",
-            "expressvpn status",
+            ["protonvpn-cli", "status"],
+            ["nordvpn", "status"],
+            ["expressvpn", "status"],
         ]
 
         for cmd in status_commands:
             try:
                 result = subprocess.run(
                     cmd,
-                    shell=True,
                     capture_output=True,
                     text=True,
                     timeout=5,

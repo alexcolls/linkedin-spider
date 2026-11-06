@@ -31,10 +31,10 @@ Be respectful, inclusive, and professional. We're here to build something great 
 4. Write or update tests
 5. Ensure code quality:
    ```bash
-   black linkedin_spider/
-   ruff check linkedin_spider/
-   mypy linkedin_spider/
-   pytest
+   poetry run ruff format .
+   poetry run ruff check .
+   poetry run mypy src
+   poetry run pytest
    ```
 6. Commit with emoji prefixes:
    - ✨ `:sparkles:` - New feature
@@ -54,19 +54,16 @@ git clone https://github.com/YOUR_USERNAME/linkedin-spider.git
 cd linkedin-spider
 
 # Install dependencies
-poetry install --with dev
-
-# Activate environment
-poetry shell
+poetry install -E excel
 
 # Run tests
-pytest
+poetry run pytest
 
 # Format code
-black linkedin_spider/
+poetry run ruff format .
 
 # Lint
-ruff check linkedin_spider/
+poetry run ruff check .
 ```
 
 ### Code Style

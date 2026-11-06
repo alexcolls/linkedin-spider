@@ -1,13 +1,14 @@
 """Google Search scraper for finding LinkedIn profiles."""
 
 import time
-from typing import List
+from typing import List, Optional
 
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from selenium.common.exceptions import NoSuchElementException
 
 from linkedin_spider.core.browser import browser
+from linkedin_spider.models import is_profile_url, unique_profile_urls
 from linkedin_spider.utils import config, logger
 
 
@@ -37,7 +38,7 @@ class GoogleSearchScraper:
 
         return query
 
-    def search(self, keywords: List[str], max_pages: int = None) -> List[str]:
+    def search(self, keywords: List[str], max_pages: Optional[int] = None) -> List[str]:
         """
         Search Google for LinkedIn profiles matching keywords.
 
@@ -70,7 +71,7 @@ class GoogleSearchScraper:
                 cookies_button = browser.driver.find_element(By.ID, "L2AGLb")
                 cookies_button.click()
                 time.sleep(1)
-            except:
+            except Exception:
                 pass  # No cookies prompt
 
             # Find search input
@@ -85,7 +86,9 @@ class GoogleSearchScraper:
                 page_urls = self._scrape_current_page()
                 self.urls.extend(page_urls)
 
-                logger.info(f"Page {pages_scraped + 1}: Found {len(page_urls)} URLs (Total: {len(self.urls)})")
+                logger.info(
+                    f"Page {pages_scraped + 1}: Found {len(page_urls)} URLs (Total: {len(self.urls)})"
+                )
 
                 pages_scraped += 1
 
@@ -97,7 +100,7 @@ class GoogleSearchScraper:
                 time.sleep(2)
 
             # Remove duplicates
-            self.urls = list(set(self.urls))
+            self.urls = unique_profile_urls(self.urls)
             logger.info(f"✅ Total unique LinkedIn URLs found: {len(self.urls)}")
 
             return self.urls
@@ -114,31 +117,17 @@ class GoogleSearchScraper:
             True if CAPTCHA detected, False otherwise
         """
         try:
-            # Check for reCAPTCHA iframe
-            captcha_selectors = [
-                "iframe[src*='recaptcha']",
-                "#recaptcha",
-                "[id*='captcha']",
-                "[class*='captcha']",
-                "div#g-recaptcha",
-            ]
-            
-            for selector in captcha_selectors:
-                try:
-                    elements = browser.driver.find_elements(By.CSS_SELECTOR, selector)
-                    if elements:
-                        return True
-                except:
-                    continue
-            
-            # Check page source for captcha-related text
-            page_source = browser.driver.page_source.lower()
-            captcha_keywords = ['captcha', 'unusual traffic', 'automated requests']
-            if any(keyword in page_source for keyword in captcha_keywords):
+            # Only Google's block page and an actual challenge count. Page text doesn't:
+            # results for a search about CAPTCHAs contain the word too.
+            if "/sorry/" in browser.driver.current_url:
                 return True
-                
-            return False
-            
+
+            return bool(
+                browser.driver.find_elements(
+                    By.CSS_SELECTOR, "iframe[src*='recaptcha']"
+                )
+            )
+
         except Exception as e:
             logger.debug(f"Error detecting CAPTCHA: {e}")
             return False
@@ -148,39 +137,45 @@ class GoogleSearchScraper:
         Wait for user to resolve CAPTCHA.
         Automatically detects when CAPTCHA is resolved.
         """
+        if config.headless:
+            logger.error(
+                "CAPTCHA shown, but nobody can solve it in a headless browser."
+            )
+            return
+
         logger.warning("⚠️  CAPTCHA detected! Please solve it in the browser window.")
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("⚠️  CAPTCHA DETECTED")
-        print("="*60)
+        print("=" * 60)
         print("Google has shown a CAPTCHA challenge.")
         print("Please solve it in the browser window that opened.")
         print("")
         print("Waiting for CAPTCHA resolution...")
         print("(The script will continue automatically once solved)")
-        print("="*60 + "\n")
-        
+        print("=" * 60 + "\n")
+
         # Poll for CAPTCHA resolution
         max_wait_time = 300  # 5 minutes max
         check_interval = 2  # Check every 2 seconds
         elapsed_time = 0
-        
+
         while elapsed_time < max_wait_time:
             time.sleep(check_interval)
             elapsed_time += check_interval
-            
+
             # Check if CAPTCHA is still present
             if not self._detect_captcha():
-                print("\n" + "="*60)
+                print("\n" + "=" * 60)
                 print("✅ CAPTCHA RESOLVED!")
-                print("="*60 + "\n")
+                print("=" * 60 + "\n")
                 logger.info("CAPTCHA resolved - continuing...")
                 time.sleep(2)  # Give page time to fully load
                 return
-            
+
             # Show progress every 10 seconds
             if elapsed_time % 10 == 0:
                 print(f"  Still waiting... ({elapsed_time}s elapsed)")
-        
+
         # Timeout reached
         logger.warning("CAPTCHA resolution timeout - attempting to continue anyway")
         print("\n⚠️  Timeout waiting for CAPTCHA resolution")
@@ -193,7 +188,7 @@ class GoogleSearchScraper:
         Returns:
             List of URLs found on current page
         """
-        page_urls = []
+        page_urls: List[str] = []
 
         try:
             # Check for CAPTCHA first
@@ -204,24 +199,16 @@ class GoogleSearchScraper:
                     logger.error("CAPTCHA still present. Aborting page scrape.")
                     return page_urls
 
-            # Find all result divs
-            result_divs = browser.driver.find_elements(By.CLASS_NAME, "yuRUbf")
+            # Google's class names change often, so match the links themselves
+            links = browser.driver.find_elements(
+                By.CSS_SELECTOR, 'a[href*="linkedin.com/in/"]'
+            )
 
-            # If no results found, might be a captcha or end of results
-            if not result_divs:
-                if self._detect_captcha():
-                    self._wait_for_captcha_resolution()
-                    # Try again after captcha
-                    result_divs = browser.driver.find_elements(By.CLASS_NAME, "yuRUbf")
-
-            for result_div in result_divs:
+            for link in links:
                 try:
-                    # Get the link element
-                    link_element = result_div.find_element(By.CSS_SELECTOR, "a")
-                    url = link_element.get_attribute("href")
+                    url = link.get_attribute("href")
 
-                    # Check if it's a LinkedIn profile URL
-                    if url and "linkedin.com/in/" in url:
+                    if url and is_profile_url(url):
                         page_urls.append(url)
 
                 except Exception as e:
@@ -244,14 +231,14 @@ class GoogleSearchScraper:
             # Check for CAPTCHA before clicking next
             if self._detect_captcha():
                 self._wait_for_captcha_resolution()
-            
+
             # Try to find next button
             try:
                 next_button = browser.driver.find_element(By.ID, "pnnext")
             except NoSuchElementException:
                 logger.debug("Next button not found - end of results")
                 return False
-            
+
             # Click next button
             try:
                 next_button.click()
@@ -259,13 +246,13 @@ class GoogleSearchScraper:
             except Exception as e:
                 logger.error(f"Failed to click next button: {e}")
                 return False
-            
+
             # Check for CAPTCHA after navigation
             if self._detect_captcha():
                 self._wait_for_captcha_resolution()
-            
+
             return True
-            
+
         except Exception as e:
             logger.error(f"Error navigating to next page: {e}")
             return False
@@ -277,7 +264,7 @@ class GoogleSearchScraper:
         Returns:
             List of keywords
         """
-        keywords = []
+        keywords: List[str] = []
 
         print("\n🔍 Enter search keywords (press Enter with empty input to finish):")
 

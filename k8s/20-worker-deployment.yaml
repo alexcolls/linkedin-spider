@@ -6,7 +6,7 @@ metadata:
   labels:
     app: linkedin-spider-worker
 spec:
-  replicas: 1000  # Default 1,000 workers
+  replicas: 1
   selector:
     matchLabels:
       app: linkedin-spider-worker
@@ -32,6 +32,11 @@ spec:
         - configMapRef:
             name: linkedin-spider-config
         env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: linkedin-credentials
+              key: DATABASE_URL
         - name: LINKEDIN_COOKIES_B64
           valueFrom:
             secretKeyRef:

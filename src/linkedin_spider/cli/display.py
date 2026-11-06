@@ -1,18 +1,15 @@
 """Display utilities for CLI interface."""
 
 import sys
-import tty
-import termios
 from pathlib import Path
 from typing import List, Optional
 
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
-from rich.text import Text
 
 from linkedin_spider.models import Profile
-
 
 console = Console()
 
@@ -65,13 +62,17 @@ def show_welcome():
 
 def get_key():
     """Get a single keypress from the user."""
+    # Unix only. On other platforms this raises, and the menu falls back to typed input.
+    import termios
+    import tty
+
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
     try:
         tty.setraw(sys.stdin.fileno())
         ch = sys.stdin.read(1)
         # Handle arrow keys (ESC sequences)
-        if ch == '\x1b':
+        if ch == "\x1b":
             ch = sys.stdin.read(2)
         return ch
     finally:
@@ -80,7 +81,7 @@ def get_key():
 
 def show_menu(selected_index: int = 0):
     """Display interactive menu options with selection highlight.
-    
+
     Args:
         selected_index: Currently selected menu item index
     """
@@ -93,7 +94,7 @@ def show_menu(selected_index: int = 0):
         ("6", "❓  Help"),
         ("0", "🚪  Exit"),
     ]
-    
+
     menu_table = Table(show_header=False, box=None, padding=(0, 2))
     menu_table.add_column("Selector", style="dim", width=2)
     menu_table.add_column("Option", style="bold cyan", width=4)
@@ -102,7 +103,11 @@ def show_menu(selected_index: int = 0):
     for i, (option, description) in enumerate(menu_items):
         if i == selected_index:
             # Highlight selected item
-            menu_table.add_row("▶", f"[bold yellow]{option}[/bold yellow]", f"[bold yellow]{description}[/bold yellow]")
+            menu_table.add_row(
+                "▶",
+                f"[bold yellow]{option}[/bold yellow]",
+                f"[bold yellow]{description}[/bold yellow]",
+            )
         else:
             menu_table.add_row(" ", option, description)
 
@@ -113,6 +118,15 @@ def show_menu(selected_index: int = 0):
             border_style="yellow",
         )
     )
+
+
+def _cell(text: str, limit: Optional[int] = None) -> str:
+    """Format scraped text for a table: it's untrusted, so it can't carry markup."""
+    if not text:
+        return "[dim]-[/dim]"
+    if limit and len(text) > limit:
+        text = text[:limit] + "..."
+    return escape(text)
 
 
 def show_profiles_table(profiles: List[Profile], max_rows: Optional[int] = 20):
@@ -142,10 +156,10 @@ def show_profiles_table(profiles: List[Profile], max_rows: Optional[int] = 20):
     for i, profile in enumerate(display_profiles, 1):
         table.add_row(
             str(i),
-            profile.name or "[dim]Unknown[/dim]",
-            profile.title[:50] + "..." if len(profile.title) > 50 else profile.title or "[dim]-[/dim]",
-            profile.company[:30] + "..." if len(profile.company) > 30 else profile.company or "[dim]-[/dim]",
-            profile.location or "[dim]-[/dim]",
+            _cell(profile.name),
+            _cell(profile.title, limit=50),
+            _cell(profile.company, limit=30),
+            _cell(profile.location),
             str(profile.followers) if profile.followers > 0 else "[dim]-[/dim]",
         )
 
@@ -177,7 +191,7 @@ def show_urls_list(urls: List[str], max_rows: Optional[int] = 20):
     display_urls = urls[:max_rows] if max_rows else urls
 
     for i, url in enumerate(display_urls, 1):
-        table.add_row(str(i), url)
+        table.add_row(str(i), escape(url))
 
     console.print(table)
 
@@ -204,20 +218,21 @@ def show_help():
    Requires LinkedIn login credentials in .env file.
 
 [cyan]3. Auto-Connect to Profiles[/cyan]
-   Automatically send connection requests to profiles.
+   Go through collected profiles and send connection requests.
+   You confirm each person, and each run has a limit.
    Requires LinkedIn login. Use responsibly!
 
 [cyan]4. View/Export Results[/cyan]
    View scraped profiles or export them to CSV, JSON, or Excel.
 
 [cyan]5. Configure Settings[/cyan]
-   Adjust delays, VPN settings, export formats, etc.
+   Adjust delays, export formats, etc.
    Edit config.yaml or .env file directly.
 
 [yellow]⚠️  Important Notes:[/yellow]
-• Respect LinkedIn's Terms of Service
-• Use delays to avoid detection
-• Consider using VPN for IP rotation
+• LinkedIn's terms prohibit automated access, and it can restrict your account
+• Scraped profiles are personal data: GDPR and CCPA may apply
+• Keep the delays: they limit the load you put on the site
 • Keep your credentials secure
 
 [blue]For more info, visit the documentation[/blue]
@@ -230,35 +245,34 @@ def show_help():
 
 def interactive_menu_select() -> str:
     """Interactive menu selection with arrow keys.
-    
+
     Returns:
         Selected option as string ("1", "2", etc.)
     """
     menu_items = ["1", "2", "3", "4", "5", "6", "0"]
     selected_index = 0
-    
+
     try:
         while True:
             # Clear and redraw menu
             console.clear()
-            from linkedin_spider.cli.display import show_welcome
             show_welcome()
             show_menu(selected_index)
-            
+
             # Get user input
             console.print("\n[dim]Select option: [/dim]", end="")
             key = get_key()
-            
+
             # Handle arrow keys
-            if key == '[A':  # Up arrow
+            if key == "[A":  # Up arrow
                 selected_index = (selected_index - 1) % len(menu_items)
-            elif key == '[B':  # Down arrow
+            elif key == "[B":  # Down arrow
                 selected_index = (selected_index + 1) % len(menu_items)
-            elif key == '\r' or key == '\n':  # Enter
+            elif key == "\r" or key == "\n":  # Enter
                 return menu_items[selected_index]
             elif key in menu_items:  # Direct number input
                 return key
-            elif key == '\x03':  # Ctrl+C
+            elif key == "\x03":  # Ctrl+C
                 raise KeyboardInterrupt
     except Exception:
         # Fallback to text input if arrow keys don't work
@@ -279,7 +293,11 @@ def prompt(message: str, default: Optional[str] = None) -> str:
     if default:
         message = f"{message} [{default}]"
 
-    return console.input(f"[bold cyan]➤[/bold cyan] {message}: ").strip() or default or ""
+    return (
+        console.input(f"[bold cyan]➤[/bold cyan] {escape(message)}: ").strip()
+        or default
+        or ""
+    )
 
 
 def confirm(message: str, default: bool = False) -> bool:
@@ -304,19 +322,19 @@ def confirm(message: str, default: bool = False) -> bool:
 
 def success(message: str):
     """Display success message."""
-    console.print(f"[green]✓[/green] {message}")
+    console.print(f"[green]✓[/green] {escape(message)}")
 
 
 def error(message: str):
     """Display error message."""
-    console.print(f"[red]✗[/red] {message}")
+    console.print(f"[red]✗[/red] {escape(message)}")
 
 
 def warning(message: str):
     """Display warning message."""
-    console.print(f"[yellow]⚠[/yellow] {message}")
+    console.print(f"[yellow]⚠[/yellow] {escape(message)}")
 
 
 def info(message: str):
     """Display info message."""
-    console.print(f"[blue]ℹ[/blue] {message}")
+    console.print(f"[blue]ℹ[/blue] {escape(message)}")

@@ -5,42 +5,40 @@ description = "A professional CLI tool for scraping LinkedIn profiles via Google
 authors = ["quantium <alexcollsoutumuro@gmail.com>"]
 readme = "README.md"
 license = "MIT"
-repository = "https://github.com/quantium/linkedin-spider"
+repository = "https://github.com/alexcolls/linkedin-spider"
 keywords = ["linkedin", "scraper", "cli", "automation", "web-scraping"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 packages = [{include = "linkedin_spider", from = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.11,<4.0"
 selenium = "^4.26.1"
 beautifulsoup4 = "^4.12.3"
-lxml = "^5.3.0"
-pandas = "^2.2.3"
-typer = "^0.15.1"
-rich = "^13.9.4"
+lxml = ">=6.1,<7"
+typer = ">=0.15.4,<1"
+rich = ">=13.9.4,<15"
 python-dotenv = "^1.0.1"
 pyyaml = "^6.0.2"
-webdriver-manager = "^4.0.2"
 openpyxl = {version = "^3.1.5", optional = true}
 
 [tool.poetry.extras]
 excel = ["openpyxl"]
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.3.3"
-black = "^24.10.0"
-mypy = "^1.13.0"
-ruff = "^0.8.2"
-pytest-cov = "^6.0.0"
+pytest = ">=8.3.3,<10"
+mypy = ">=1.13,<3"
+ruff = ">=0.8.2,<1"
+pytest-cov = ">=6,<8"
+types-pyyaml = "^6.0"
 
 [tool.poetry.scripts]
 linkedin-tarantula = "linkedin_spider.cli.main:app"
@@ -50,20 +48,38 @@ linkedin-spider = "linkedin_spider.cli.main:app"
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.black]
-line-length = 88
-target-version = ['py39']
-include = '\.pyi?$'
-
 [tool.ruff]
 line-length = 88
-target-version = "py39"
+target-version = "py311"
+include = ["*.py"]
+# The unsupported distributed stack only receives security fixes
+extend-exclude = [
+    "src/linkedin_spider/core/worker.py",
+    "src/linkedin_spider/db",
+    "src/linkedin_spider/queue",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+ignore = [
+    "E501",  # line length is left to the formatter
+    "B008",  # typer declares options as call defaults
+]
 
 [tool.mypy]
-python_version = "3.9"
-warn_return_any = true
+python_version = "3.11"
 warn_unused_configs = true
 disallow_untyped_defs = false
+# The unsupported distributed stack only receives security fixes
+exclude = ["linkedin_spider/core/worker\\.py", "linkedin_spider/db/", "linkedin_spider/queue/"]
+
+[[tool.mypy.overrides]]
+module = "linkedin_spider.core.worker"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "openpyxl"
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

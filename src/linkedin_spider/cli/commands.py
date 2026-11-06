@@ -3,8 +3,10 @@
 from pathlib import Path
 
 from linkedin_spider.cli import display
-from linkedin_spider.core import scraper, google_scraper
+from linkedin_spider.core import google_scraper, scraper
+from linkedin_spider.core.scraper import MAX_CONNECTS_PER_RUN
 from linkedin_spider.utils import config, exporter
+from linkedin_spider.utils.export import load_urls, save_urls
 
 
 def search_profiles_command():
@@ -41,14 +43,13 @@ def search_profiles_command():
 
         # Ask to save
         if display.confirm("Save URLs to file?", default=True):
-            filename = display.prompt("Filename (without extension)", default="profile_urls")
+            filename = display.prompt(
+                "Filename (without extension)", default="profile_urls"
+            )
             filepath = config.data_dir / f"{filename}.txt"
-            filepath.parent.mkdir(parents=True, exist_ok=True)
+            total = save_urls(filepath, urls)
 
-            with open(filepath, "w") as f:
-                f.write("\n".join(urls))
-
-            display.success(f"URLs saved to {filepath}")
+            display.success(f"URLs saved to {filepath} ({total} total)")
     else:
         display.warning("No URLs found")
 
@@ -72,8 +73,7 @@ def scrape_profiles_command():
                 filepath = config.data_dir / filename
 
             if filepath.exists():
-                with open(filepath, "r") as f:
-                    urls = [line.strip() for line in f if line.strip()]
+                urls = load_urls(filepath)
                 scraper.profile_urls = urls
                 display.success(f"Loaded {len(urls)} URLs from {filepath}")
             else:
@@ -108,12 +108,18 @@ def scrape_profiles_command():
     display.prompt("\nPress Enter to continue")
 
 
+def _confirm_connection(name: str, url: str) -> bool:
+    """Ask whether to send a connection request to this person."""
+    return display.confirm(f"Send request to {name} ({url})?", default=False)
+
+
 def connect_to_profiles_command():
     """Handle auto-connect to profiles command."""
     display.console.print("\n[bold cyan]🤝 Auto-Connect to Profiles[/bold cyan]\n")
 
     display.warning(
-        "⚠️  Auto-connecting sends real connection requests on LinkedIn.\n"
+        "⚠️  This sends real connection requests on LinkedIn.\n"
+        f"   You'll confirm each person, up to {MAX_CONNECTS_PER_RUN} requests per run.\n"
         "   Use this feature responsibly and in accordance with LinkedIn's Terms of Service."
     )
 
@@ -127,15 +133,20 @@ def connect_to_profiles_command():
         return
 
     # Confirm
-    display.info(f"Ready to connect to {len(scraper.profile_urls)} profiles")
+    display.info(f"{len(scraper.profile_urls)} profiles to go through")
 
-    if not display.confirm("Send connection requests?", default=False):
+    if not display.confirm("Start?", default=False):
         return
 
     # Connect
-    success_count = scraper.connect_to_profiles(login_first=True)
+    counts = scraper.connect_to_profiles(
+        scraper.profile_urls, _confirm_connection, login_first=True
+    )
 
-    display.success(f"Sent {success_count} connection requests")
+    display.success(
+        f"Sent {counts['sent']} connection requests "
+        f"({counts['declined']} declined, {counts['skipped']} skipped)"
+    )
     display.prompt("\nPress Enter to continue")
 
 
@@ -195,8 +206,9 @@ def export_results_command():
     try:
         filepath = exporter.export(profiles, format=export_format, filename=filename)
         display.success(f"Exported {len(profiles)} profiles to {filepath}")
-    except ImportError:
-        display.error("Excel export requires openpyxl. Install with: poetry install -E excel")
+        scraper.finish_session()
+    except ImportError as e:
+        display.error(str(e))
     except Exception as e:
         display.error(f"Export failed: {e}")
 
@@ -214,7 +226,9 @@ def configure_settings_command():
     display.console.print(f"  • Data Directory: {config.data_dir}")
     display.console.print(f"  • Export Format: {config.default_export_format}")
 
-    display.console.print("\n[dim]To change settings, edit config.yaml or .env file[/dim]")
+    display.console.print(
+        "\n[dim]To change settings, edit config.yaml or .env file[/dim]"
+    )
     display.prompt("\nPress Enter to continue")
 
 

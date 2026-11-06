@@ -1,10 +1,13 @@
 """Progress persistence for resume functionality."""
 
 import json
+import os
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from linkedin_spider.models import Profile
 from linkedin_spider.utils import config, logger
 
 
@@ -18,22 +21,36 @@ class ProgressTracker:
         Args:
             session_name: Optional session name. If None, generates timestamp-based name.
         """
-        self.session_name = session_name or f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        self.session_name = (
+            session_name or f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        )
         self.progress_file = config.data_dir / f".progress_{self.session_name}.json"
         self.progress_data: Dict = self._load_progress()
 
     def _load_progress(self) -> Dict:
-        """Load progress from file if exists."""
-        if self.progress_file.exists():
-            try:
-                with open(self.progress_file, "r") as f:
-                    data = json.load(f)
-                    logger.info(f"📂 Loaded progress from {self.progress_file}")
-                    return data
-            except Exception as e:
-                logger.warning(f"Failed to load progress file: {e}")
-                return self._create_new_progress()
-        return self._create_new_progress()
+        """
+        Load progress from file if exists.
+
+        Raises:
+            ValueError: If the file exists but can't be read. Starting over would
+                silently discard everything the session has scraped.
+        """
+        if not self.progress_file.exists():
+            return self._create_new_progress()
+
+        try:
+            with open(self.progress_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, ValueError) as e:
+            raise ValueError(
+                f"Can't read progress file {self.progress_file}: {e}. "
+                "Restore or delete the file to continue."
+            ) from e
+
+        # Files written by older versions don't have this key
+        data.setdefault("profiles", [])
+        logger.info(f"📂 Loaded progress from {self.progress_file}")
+        return data
 
     def _create_new_progress(self) -> Dict:
         """Create new progress data structure."""
@@ -46,21 +63,25 @@ class ProgressTracker:
             "failed_urls": [],
             "skipped_urls": [],
             "remaining_urls": [],
-            "stats": {
-                "total_scraped": 0,
-                "total_failed": 0,
-                "total_skipped": 0,
-            },
+            "profiles": [],
         }
 
     def save(self):
-        """Save progress to file."""
+        """Save progress atomically, so a kill mid-write can't corrupt the session."""
         try:
             self.progress_data["updated_at"] = datetime.now().isoformat()
             self.progress_file.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(self.progress_file, "w") as f:
-                json.dump(self.progress_data, f, indent=2)
+            # mkstemp creates the file owner-only: it holds personal data
+            fd, tmp_path = tempfile.mkstemp(
+                dir=self.progress_file.parent, prefix=".tmp_progress_"
+            )
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as f:
+                    json.dump(self.progress_data, f, indent=2)
+                os.replace(tmp_path, self.progress_file)
+            finally:
+                Path(tmp_path).unlink(missing_ok=True)
 
             logger.debug(f"💾 Progress saved to {self.progress_file}")
         except Exception as e:
@@ -68,28 +89,45 @@ class ProgressTracker:
 
     def initialize(self, urls: List[str]):
         """
-        Initialize progress with list of URLs to scrape.
+        Start tracking a list of URLs. When reusing a session name, URLs that are
+        already completed stay completed and earlier failures get another try.
 
         Args:
             urls: List of URLs to track
         """
-        self.progress_data["total_urls"] = len(urls)
-        self.progress_data["remaining_urls"] = urls.copy()
+        completed = set(self.progress_data["completed_urls"])
+        self.progress_data["total_urls"] = len(completed | set(urls))
+        self.progress_data["remaining_urls"] = [u for u in urls if u not in completed]
+        self.progress_data["failed_urls"] = [
+            f for f in self.progress_data["failed_urls"] if f["url"] not in urls
+        ]
         self.save()
 
-    def mark_completed(self, url: str):
+    def requeue_failed(self):
         """
-        Mark a URL as completed.
+        Move failed URLs back to remaining, for resume. They often failed for a
+        reason that has passed, like an expired login or a network problem.
+        """
+        remaining = self.progress_data["remaining_urls"]
+        failed = [f["url"] for f in self.progress_data["failed_urls"]]
+        remaining.extend(url for url in failed if url not in remaining)
+        self.progress_data["failed_urls"] = []
+
+    def mark_completed(self, url: str, profile: Optional[Profile] = None):
+        """
+        Mark a URL as completed and keep its scraped data.
 
         Args:
             url: URL that was successfully scraped
+            profile: Scraped profile, saved so a later resume can still export it
         """
         if url in self.progress_data["remaining_urls"]:
             self.progress_data["remaining_urls"].remove(url)
 
         if url not in self.progress_data["completed_urls"]:
             self.progress_data["completed_urls"].append(url)
-            self.progress_data["stats"]["total_scraped"] += 1
+            if profile:
+                self.progress_data["profiles"].append(profile.to_dict())
 
         self.save()
 
@@ -104,11 +142,14 @@ class ProgressTracker:
         if url in self.progress_data["remaining_urls"]:
             self.progress_data["remaining_urls"].remove(url)
 
-        failure_entry = {"url": url, "reason": reason, "timestamp": datetime.now().isoformat()}
+        failure_entry = {
+            "url": url,
+            "reason": reason,
+            "timestamp": datetime.now().isoformat(),
+        }
 
         if url not in [f["url"] for f in self.progress_data["failed_urls"]]:
             self.progress_data["failed_urls"].append(failure_entry)
-            self.progress_data["stats"]["total_failed"] += 1
 
         self.save()
 
@@ -127,7 +168,6 @@ class ProgressTracker:
 
         if url not in [s["url"] for s in self.progress_data["skipped_urls"]]:
             self.progress_data["skipped_urls"].append(skip_entry)
-            self.progress_data["stats"]["total_skipped"] += 1
 
         self.save()
 
@@ -139,6 +179,15 @@ class ProgressTracker:
             List of URLs not yet completed
         """
         return self.progress_data["remaining_urls"].copy()
+
+    def get_profiles(self) -> List[Profile]:
+        """
+        Get the profiles this session has scraped so far.
+
+        Returns:
+            List of saved profiles
+        """
+        return [Profile.from_dict(data) for data in self.progress_data["profiles"]]
 
     def get_progress_percent(self) -> float:
         """
@@ -223,6 +272,9 @@ class ProgressTracker:
 
         Returns:
             ProgressTracker instance or None if not found
+
+        Raises:
+            ValueError: If the session's progress file can't be read
         """
         tracker = ProgressTracker(session_name=session_name)
         if tracker.progress_file.exists():

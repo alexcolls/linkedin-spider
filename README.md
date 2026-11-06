@@ -3,7 +3,7 @@
 <div align="center">
 
 ![LinkedIn Spider](https://img.shields.io/badge/LinkedIn-Spider-blue?style=for-the-badge&logo=linkedin)
-[![Python](https://img.shields.io/badge/Python-3.9+-blue?style=for-the-badge&logo=python)](https://www.python.org)
+[![Python](https://img.shields.io/badge/Python-3.11+-blue?style=for-the-badge&logo=python)](https://www.python.org)
 [![Poetry](https://img.shields.io/badge/Poetry-Dependency%20Manager-blue?style=for-the-badge&logo=poetry)](https://python-poetry.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
@@ -17,20 +17,19 @@
 
 ## 📖 Overview
 
-LinkedIn Spider is a powerful, user-friendly command-line tool that helps you collect and analyze LinkedIn profiles at scale. By leveraging Google Search instead of direct LinkedIn scraping, it significantly reduces the risk of account restrictions while providing comprehensive profile data.
+LinkedIn Spider is a command-line tool that finds LinkedIn profiles through Google Search, then opens each one in a browser to collect its data. It runs on one machine, with delays between profiles.
 
 ## ✨ Features
 
-- 🔍 **Smart Search** - Find profiles via Google Search to avoid LinkedIn rate limits
+- 🔍 **Smart Search** - Find profiles via Google Search
 - 🎨 **Beautiful CLI** - Interactive arrow-key menu navigation with ASCII art
-- 📊 **Data Export** - Export to CSV, JSON, or Excel formats
-- 🔐 **Secure** - Environment-based configuration for credentials
-- 🌐 **VPN Support** - Optional IP rotation for enhanced privacy
-- ⚡ **Fast & Efficient** - Progress tracking and batch processing
-- 🛡️ **Anti-Detection** - Random delays, user agents, and human-like behavior
-- 🤖 **CAPTCHA Handler** - Automatic CAPTCHA detection with auto-resume
+- 📊 **Data Export** - Export to CSV, JSON, or Excel formats, safe to open in a spreadsheet
+- 🔐 **Secure** - Credentials from the environment, and output files only you can read
+- 🛑 **Stops When Blocked** - Stops at a login wall or after repeated failures, ready to resume
+- 🤖 **CAPTCHA Handler** - Detects CAPTCHAs, waits for you to solve them, then carries on
 - 🎮 **Interactive Menu** - Navigate with arrow keys (↑↓) and Enter
-- 💾 **Resume Support** - Interrupt and resume scraping sessions
+- 💾 **Resume Support** - Interrupt and resume scraping sessions without losing anything
+- 🤝 **Guided Connect** - Send connection requests one at a time, confirming each person
 - 🔍 **Dry Run Mode** - Preview URLs before scraping
 - 📊 **Smart Statistics** - Detailed progress and success rate tracking
 - 🔧 **Debug Mode** - Verbose logging for troubleshooting
@@ -77,8 +76,8 @@ poetry install
 # Optional: Install with Excel support
 poetry install -E excel
 
-# Activate the virtual environment
-poetry shell
+# Run it
+poetry run linkedin-spider
 ```
 
 ### Option 4: Install from GitHub (Direct)
@@ -88,7 +87,7 @@ poetry shell
 pip install git+https://github.com/alexcolls/linkedin-spider.git
 
 # Or with Excel support
-pip install "linkedin-spider[excel] @ git+https://github.com/alexcolls/linkedin-spider.git"
+pip install "linkedin-tarantula[excel] @ git+https://github.com/alexcolls/linkedin-spider.git"
 ```
 
 ## ⚙️ Configuration
@@ -102,7 +101,7 @@ cp .env.sample .env
 
 ### 2. Configuration File
 
-Edit `config.yaml` for advanced settings (delays, VPN, export format, etc.)
+Edit `config.yaml` for advanced settings (delays, export format, logging, etc.)
 
 ## 🎯 Usage
 
@@ -191,7 +190,13 @@ linkedin-spider sessions
 linkedin-spider scrape --resume session_20250110_143022
 ```
 
-**Progress is saved every profile**, so you never lose work!
+Each profile is saved to the session as soon as it's scraped, so an interruption loses nothing. Ctrl+C exports what you have so far, and resuming retries failed URLs and exports the whole session.
+
+A run also stops by itself, ready to resume, if LinkedIn shows a login wall or 5 profiles fail in a row.
+
+### Guided Connect
+
+Menu option 3 goes through your collected profiles and asks before each request, showing the person's name. It sends at most 10 requests per run. If it can't find a Connect button clearly belonging to that person, it skips them.
 
 ### Dry Run Mode
 
@@ -222,7 +227,7 @@ View all active progress sessions:
 # List all sessions with statistics
 linkedin-spider sessions
 
-# Clean up completed sessions
+# Delete all session files, including unfinished ones
 linkedin-spider sessions --cleanup
 ```
 
@@ -261,6 +266,7 @@ LinkedIn Spider automatically detects and handles Google CAPTCHA challenges:
 - **Progress Updates**: Shows elapsed time every 10 seconds
 - **Smart Polling**: Checks every 2 seconds for resolution
 - **Timeout Protection**: 5-minute maximum wait with fallback
+- **Headless Mode**: Stops the search straight away, since nobody can solve a CAPTCHA there
 
 ### Data Directory
 
@@ -268,14 +274,21 @@ All data is saved in the `data/` folder in your current working directory:
 
 - Profile URLs: `data/profile_urls.txt`
 - Exported profiles: `data/profiles_YYYYMMDD_HHMMSS.csv/json/xlsx`
+- Session progress, including scraped profiles: `data/.progress_<session>.json`
 - Logs: `logs/linkedin-spider.log`
+
+Exports and session files are readable only by you, because they hold personal data.
+
+### Distributed Deployment (Unsupported)
+
+The Docker and Kubernetes files, the `worker` command, cookie extraction and VPN switching are unsupported, and the distributed setup doesn't work. They're kept for reference, and only security problems get fixed. See [README-K8S.md](README-K8S.md).
 
 ## ⚠️ Legal & Ethical Considerations
 
-- **Terms of Service**: This tool is for educational purposes. Always comply with LinkedIn's Terms of Service.
-- **Rate Limiting**: Use appropriate delays to avoid overwhelming servers.
-- **Privacy**: Respect privacy. Only collect publicly available information.
-- **Usage**: Use this tool responsibly and ethically.
+- **Terms of Service**: LinkedIn's User Agreement prohibits automated access, and using this tool can get your account restricted. You're responsible for how you use it.
+- **Personal Data**: Scraped profiles are personal data. Laws such as GDPR and CCPA may apply to collecting, storing and using them, even when the profile is public.
+- **Connection Requests**: Requests reach real people. Only send ones you'd send by hand.
+- **Rate Limiting**: Keep the delays. They limit the load you put on the site.
 
 ## 📄 License
 
@@ -289,8 +302,8 @@ Built with [Selenium](https://www.selenium.dev/), [Typer](https://typer.tiangolo
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/alexcolls/linkedin-cv/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/alexcolls/linkedin-cv/discussions)
+- **Issues**: [GitHub Issues](https://github.com/alexcolls/linkedin-spider/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/alexcolls/linkedin-spider/discussions)
 
 ---
 

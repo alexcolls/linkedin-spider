@@ -41,14 +41,16 @@ env.bak/
 venv.bak/
 .venv/
 
-# Poetry
-poetry.lock
-
 # Environment variables
 .env
 .env.local
 key.py
 credentials.py
+
+# Session cookies give full account access
+*.pkl
+linkedin_cookies*
+k8s/*-secret.yaml
 
 # Data and exports
 data/

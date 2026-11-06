@@ -24,10 +24,10 @@ class DatabaseClient:
         Args:
             database_url: PostgreSQL connection URL. If None, reads from env.
         """
-        self.database_url = database_url or os.getenv(
-            "DATABASE_URL",
-            "postgresql://postgres:postgres@localhost:5432/linkedin_spider"
-        )
+        self.database_url = database_url or os.getenv("DATABASE_URL")
+        if not self.database_url:
+            raise ValueError("DATABASE_URL is not set")
+
         self.worker_id = os.getenv("HOSTNAME", socket.gethostname())
         
         # Initialize database

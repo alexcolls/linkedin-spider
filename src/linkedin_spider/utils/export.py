@@ -1,15 +1,71 @@
 """Export utilities for LinkedIn Spider."""
 
+import csv
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Iterable, List, Optional
 
-import pandas as pd
-
-from linkedin_spider.models import Profile
+from linkedin_spider.models import Profile, unique_profile_urls
 from linkedin_spider.utils.config import config
 from linkedin_spider.utils.logger import logger
+
+# Text a spreadsheet would treat as a formula when it opens the file.
+FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r", "\n")
+
+
+def neutralize_formula(value: Any) -> Any:
+    """Stop spreadsheets running scraped text as a formula."""
+    if isinstance(value, str) and value.startswith(FORMULA_PREFIXES):
+        return "'" + value
+    return value
+
+
+def create_private_file(path: Path) -> Path:
+    """Create a file only the owner can read: these files hold personal data."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.touch(mode=0o600)
+    path.chmod(0o600)
+    return path
+
+
+def load_urls(path: Path) -> List[str]:
+    """
+    Read profile URLs from a file with one URL per line.
+
+    Args:
+        path: File to read
+
+    Returns:
+        Canonical URLs without duplicates. Lines that aren't LinkedIn profile
+        URLs are dropped, so a bad file can't send the logged-in browser elsewhere.
+    """
+    lines = [line.strip() for line in path.read_text(encoding="utf-8").splitlines()]
+    urls = unique_profile_urls(line for line in lines if line)
+
+    ignored = sum(1 for line in lines if line) - len(urls)
+    if ignored:
+        logger.warning(f"Ignored {ignored} duplicate or non-profile lines in {path}")
+
+    return urls
+
+
+def save_urls(path: Path, urls: Iterable[str]) -> int:
+    """
+    Add profile URLs to a file, keeping the ones already there.
+
+    Args:
+        path: File to write
+        urls: URLs to add
+
+    Returns:
+        Number of URLs now in the file
+    """
+    existing = load_urls(path) if path.exists() else []
+    merged = unique_profile_urls([*existing, *urls])
+
+    create_private_file(path).write_text("\n".join(merged) + "\n", encoding="utf-8")
+    return len(merged)
 
 
 class Exporter:
@@ -22,8 +78,12 @@ class Exporter:
         Args:
             data_dir: Directory to save exports. If None, uses config value.
         """
-        self.data_dir = data_dir or config.data_dir
-        self.data_dir.mkdir(parents=True, exist_ok=True)
+        self._data_dir = data_dir
+
+    @property
+    def data_dir(self) -> Path:
+        """Directory exports are written to."""
+        return self._data_dir or config.data_dir
 
     def _generate_filename(self, base_name: str, extension: str) -> Path:
         """
@@ -44,114 +104,44 @@ class Exporter:
 
         return self.data_dir / filename
 
-    def to_csv(
-        self, profiles: List[Profile], filename: str = "profiles"
-    ) -> Path:
+    def check_format(self, format: Optional[str] = None) -> str:
         """
-        Export profiles to CSV.
+        Confirm an export format can be written, before any scraping starts.
 
         Args:
-            profiles: List of profiles to export
-            filename: Base filename (without extension)
+            format: Export format (csv, json, excel). If None, uses config default.
 
         Returns:
-            Path to exported file
-        """
-        if not profiles:
-            logger.warning("No profiles to export")
-            return None
-
-        # Convert to DataFrame
-        data = [profile.to_dict() for profile in profiles]
-        df = pd.DataFrame(data)
-
-        # Generate filename
-        filepath = self._generate_filename(filename, "csv")
-
-        # Export
-        df.to_csv(filepath, index=False, encoding="utf-8")
-        logger.info(f"Exported {len(profiles)} profiles to {filepath}")
-
-        return filepath
-
-    def to_json(
-        self, profiles: List[Profile], filename: str = "profiles"
-    ) -> Path:
-        """
-        Export profiles to JSON.
-
-        Args:
-            profiles: List of profiles to export
-            filename: Base filename (without extension)
-
-        Returns:
-            Path to exported file
-        """
-        if not profiles:
-            logger.warning("No profiles to export")
-            return None
-
-        # Convert to dict
-        data = [profile.to_dict() for profile in profiles]
-
-        # Generate filename
-        filepath = self._generate_filename(filename, "json")
-
-        # Export
-        with open(filepath, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-
-        logger.info(f"Exported {len(profiles)} profiles to {filepath}")
-
-        return filepath
-
-    def to_excel(
-        self, profiles: List[Profile], filename: str = "profiles"
-    ) -> Path:
-        """
-        Export profiles to Excel.
-
-        Args:
-            profiles: List of profiles to export
-            filename: Base filename (without extension)
-
-        Returns:
-            Path to exported file
+            The resolved format
 
         Raises:
-            ImportError: If openpyxl is not installed
+            ValueError: If the format is unknown
+            ImportError: If Excel export is requested without openpyxl installed
         """
-        try:
-            import openpyxl
-        except ImportError:
-            logger.error(
-                "openpyxl not installed. Install with: poetry install -E excel"
+        format = str(format or config.default_export_format).lower()
+
+        if format not in ("csv", "json", "excel", "xlsx"):
+            raise ValueError(
+                f"Unknown export format: {format}. Use csv, json, or excel."
             )
-            raise
 
-        if not profiles:
-            logger.warning("No profiles to export")
-            return None
+        if format in ("excel", "xlsx"):
+            try:
+                import openpyxl  # noqa: F401
+            except ImportError as e:
+                raise ImportError(
+                    "Excel export requires openpyxl. "
+                    "Install with: pip install linkedin-tarantula[excel]"
+                ) from e
 
-        # Convert to DataFrame
-        data = [profile.to_dict() for profile in profiles]
-        df = pd.DataFrame(data)
-
-        # Generate filename
-        filepath = self._generate_filename(filename, "xlsx")
-
-        # Export
-        df.to_excel(filepath, index=False, engine="openpyxl")
-        logger.info(f"Exported {len(profiles)} profiles to {filepath}")
-
-        return filepath
+        return format
 
     def export(
         self,
         profiles: List[Profile],
-        format: str = None,
+        format: Optional[str] = None,
         filename: str = "profiles",
-    ) -> Path:
+    ) -> Optional[Path]:
         """
         Export profiles to specified format.
 
@@ -161,23 +151,43 @@ class Exporter:
             filename: Base filename (without extension)
 
         Returns:
-            Path to exported file
+            Path to exported file, or None if there was nothing to export
         """
-        if format is None:
-            format = config.default_export_format
+        format = self.check_format(format)
 
-        format = format.lower()
+        if not profiles:
+            logger.warning("No profiles to export")
+            return None
+
+        rows = [profile.to_dict() for profile in profiles]
 
         if format == "csv":
-            return self.to_csv(profiles, filename)
+            filepath = create_private_file(self._generate_filename(filename, "csv"))
+            with open(filepath, "w", encoding="utf-8", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=list(rows[0]))
+                writer.writeheader()
+                for row in rows:
+                    writer.writerow(
+                        {key: neutralize_formula(val) for key, val in row.items()}
+                    )
         elif format == "json":
-            return self.to_json(profiles, filename)
-        elif format in ("excel", "xlsx"):
-            return self.to_excel(profiles, filename)
+            filepath = create_private_file(self._generate_filename(filename, "json"))
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump(rows, f, indent=2, ensure_ascii=False)
         else:
-            raise ValueError(
-                f"Unknown export format: {format}. Use csv, json, or excel."
-            )
+            import openpyxl
+
+            workbook = openpyxl.Workbook()
+            sheet = workbook.active
+            sheet.append(list(rows[0]))
+            for row in rows:
+                sheet.append([neutralize_formula(val) for val in row.values()])
+
+            filepath = create_private_file(self._generate_filename(filename, "xlsx"))
+            workbook.save(filepath)
+
+        logger.info(f"Exported {len(profiles)} profiles to {filepath}")
+        return filepath
 
 
 # Global exporter instance

@@ -1,6 +1,8 @@
 # 🕷️ LinkedIn Spider - Distributed Scraping Implementation Summary
 
-## ✅ Completed Implementation
+> **⚠️ Unsupported and not working.** This distributed setup isn't maintained: the Docker image doesn't build, workers never load their session cookies, and the queue's retry logic is wrong. It's kept for reference, and only security problems get fixed. Use the single-machine CLI described in [README.md](README.md).
+
+## Implementation
 
 This document summarizes the Docker and Kubernetes infrastructure added to LinkedIn Spider for multi-node distributed scraping.
 
@@ -266,6 +268,7 @@ poetry run python -m linkedin_spider.cli.extract_cookies --k8s-secret
 ```python
 # Push URLs to queue
 from linkedin_spider.queue import get_producer
+
 producer = get_producer()
 producer.push_urls_from_file("urls.txt")
 print(f"Queue size: {producer.get_queue_size()}")
@@ -394,7 +397,7 @@ This implementation achieves:
 
 ---
 
-**Status**: ✅ Production-Ready
+**Status**: ⚠️ Unsupported, not working
 
 **Last Updated**: 2025-11-05
 

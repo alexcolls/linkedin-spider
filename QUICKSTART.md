@@ -1,8 +1,10 @@
 # 🚀 LinkedIn Spider - Quick Start Guide
 
+> **⚠️ Unsupported and not working.** This distributed setup isn't maintained: the Docker image doesn't build, workers never load their session cookies, and the queue's retry logic is wrong. It's kept for reference, and only security problems get fixed. Use the single-machine CLI described in [README.md](README.md).
+
 ## What Was Built
 
-A **production-ready distributed LinkedIn scraping system** with Docker and Kubernetes support for running **1,000+ concurrent worker pods**.
+A **distributed LinkedIn scraping system** with Docker and Kubernetes support for running **1,000+ concurrent worker pods**.
 
 ### Key Features ✨
 

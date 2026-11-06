@@ -1,19 +1,23 @@
 """Browser management for LinkedIn Spider."""
 
+import os
 import random
 import time
-from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from webdriver_manager.chrome import ChromeDriverManager
 
 from linkedin_spider.utils import config, logger
+
+# How long to wait for the feed after submitting the login form. A visible browser
+# gets long enough for a person to finish 2FA or a checkpoint.
+LOGIN_TIMEOUT_VISIBLE = 300
+LOGIN_TIMEOUT_HEADLESS = 15
 
 
 class BrowserManager:
@@ -21,8 +25,9 @@ class BrowserManager:
 
     def __init__(self):
         """Initialize browser manager."""
-        self.driver: Optional[webdriver.Chrome] = None
-        self.wait: Optional[WebDriverWait] = None
+        # A Chrome driver and its WebDriverWait once start() has run, otherwise None
+        self.driver: Any = None
+        self.wait: Any = None
 
     def create_driver(self) -> webdriver.Chrome:
         """
@@ -60,15 +65,16 @@ class BrowserManager:
             chrome_options.add_argument(f"user-agent={random.choice(user_agents)}")
 
         # Additional stability options
-        chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-gpu")
 
-        # Create service
-        service = Service(ChromeDriverManager().install())
+        # The sandbox protects a logged-in browser from the pages it loads, so only
+        # environments that can't run it (containers) should turn it off.
+        if os.getenv("CHROME_NO_SANDBOX"):
+            chrome_options.add_argument("--no-sandbox")
 
-        # Create driver
-        driver = webdriver.Chrome(service=service, options=chrome_options)
+        # Selenium Manager finds or downloads a matching driver
+        driver = webdriver.Chrome(options=chrome_options)
 
         # Set page load timeout
         driver.set_page_load_timeout(60)
@@ -113,7 +119,9 @@ class BrowserManager:
         time.sleep(2)
         self.start()
 
-    def login_linkedin(self, email: Optional[str] = None, password: Optional[str] = None) -> bool:
+    def login_linkedin(
+        self, email: Optional[str] = None, password: Optional[str] = None
+    ) -> bool:
         """
         Log in to LinkedIn.
 
@@ -144,7 +152,7 @@ class BrowserManager:
                 email_field = self.wait.until(
                     EC.presence_of_element_located((By.ID, "session_key"))
                 )
-            except:
+            except TimeoutException:
                 # Try alternative selector
                 email_field = self.driver.find_element(By.CLASS_NAME, "input__input")
 
@@ -164,16 +172,28 @@ class BrowserManager:
             )
             login_button.click()
 
-            # Wait for page to load
-            time.sleep(5)
-
-            # Check if login was successful
-            if "feed" in self.driver.current_url or "mynetwork" in self.driver.current_url:
-                logger.info("✅ LinkedIn login successful")
-                return True
-            else:
-                logger.warning("LinkedIn login may have failed - check for CAPTCHA or verification")
+            timeout = (
+                LOGIN_TIMEOUT_HEADLESS if config.headless else LOGIN_TIMEOUT_VISIBLE
+            )
+            logger.info(
+                f"Waiting up to {timeout}s for the feed. Complete any 2FA or "
+                "verification in the browser window."
+            )
+            try:
+                WebDriverWait(self.driver, timeout).until(
+                    lambda driver: (
+                        "feed" in driver.current_url
+                        or "mynetwork" in driver.current_url
+                    )
+                )
+            except TimeoutException:
+                logger.warning(
+                    "LinkedIn login failed - check for CAPTCHA or verification"
+                )
                 return False
+
+            logger.info("✅ LinkedIn login successful")
+            return True
 
         except Exception as e:
             logger.error(f"LinkedIn login failed: {e}")
@@ -190,22 +210,20 @@ class BrowserManager:
             return
 
         start_time = time.time()
-        initial_scroll = 0
-        final_scroll = 1000
+        scroll_y = 1000
 
         while time.time() - start_time < duration:
             try:
-                self.driver.execute_script(
-                    f"window.scrollTo({initial_scroll}, {final_scroll})"
-                )
-                initial_scroll = final_scroll
-                final_scroll += 1000
+                self.driver.execute_script(f"window.scrollTo(0, {scroll_y})")
+                scroll_y += 1000
                 time.sleep(3)
             except Exception as e:
                 logger.debug(f"Scroll error: {e}")
                 break
 
-    def random_delay(self, min_seconds: Optional[int] = None, max_seconds: Optional[int] = None):
+    def random_delay(
+        self, min_seconds: Optional[int] = None, max_seconds: Optional[int] = None
+    ):
         """
         Wait for a random amount of time.
 
@@ -213,11 +231,12 @@ class BrowserManager:
             min_seconds: Minimum delay. If None, uses config value.
             max_seconds: Maximum delay. If None, uses config value.
         """
-        min_delay = min_seconds or config.min_delay
-        max_delay = max_seconds or config.max_delay
+        min_delay = config.min_delay if min_seconds is None else min_seconds
+        max_delay = config.max_delay if max_seconds is None else max_seconds
 
-        delay = random.randint(min_delay, max_delay)
-        logger.debug(f"Waiting {delay} seconds...")
+        # A max below the min is a config mistake: honour the larger minimum
+        delay = random.uniform(min_delay, max(min_delay, max_delay))
+        logger.debug(f"Waiting {delay:.1f} seconds...")
         time.sleep(delay)
 
     def get(self, url: str):
