@@ -23,7 +23,7 @@ packages = [{include = "linkedin_spider", from = "src"}]
 python = ">=3.11,<4.0"
 selenium = "^4.26.1"
 beautifulsoup4 = "^4.12.3"
-lxml = ">=5.3,<7"
+lxml = ">=6.1,<7"
 typer = ">=0.15.4,<1"
 rich = ">=13.9.4,<15"
 python-dotenv = "^1.0.1"

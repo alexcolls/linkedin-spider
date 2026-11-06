@@ -1421,4 +1421,4 @@ excel = ["openpyxl"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4.0"
-content-hash = "b31614e9bf0c035d25f5f4e5509b1aaf90f8ce413e464f57a07f258bbd10b74d"
+content-hash = "a9ad65c7ae2964d0e68667f737ee50817f707c05c531ec470a45dc1060ebe30e"
